@@ -1,0 +1,8 @@
+{
+  "appId": "co.construtop.calcutop",
+  "appName": "CalcuTop",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#ffffff"
+  }
+}

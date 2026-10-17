@@ -1,0 +1,803 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f8270">
+<style>
+@font-face{font-family:"JetBrains Mono";font-weight:400 500;font-style:normal;src:url(fonts/JetBrainsMono-400.woff) format("woff")}
+@font-face{font-family:"JetBrains Mono";font-weight:600 800;font-style:normal;src:url(fonts/JetBrainsMono-700.woff) format("woff")}
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{-webkit-tap-highlight-color:transparent}
+body{margin:0;font:14px system-ui,sans-serif}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<title>CalcuTop</title>
+</head>
+<body>
+<style>
+/* Layout: herramienta de campo, una columna, pestañas por módulo, resultados en panel tipo libreta */
+:root{
+  --bg:#e9f3f1; --panel:#ffffff; --fg:#14302b; --muted:#557069; --line:#cde0db;
+  --accent:#1f8270; --accent-ink:#ffffff; --staff:#e8a317; --logo-bg:#ffffff; --ok:#2f7d4f; --warn:#b5462f; --field:#f2f8f6;
+  --brand:#1f8270; --brand-2:#145e51; --on-brand:#ffffff;
+  --display:"Roboto",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d1a17; --panel:#13241f; --fg:#e3f0ec; --muted:#8fb0a8; --line:#24403a;
+  --accent:#3dbfa4; --accent-ink:#0f1513; --staff:#f0b43a; --logo-bg:#ffffff; --ok:#5cbf85; --warn:#e3785f; --field:#192d28;
+  --brand:#1a7364; --brand-2:#0f4a40; --on-brand:#ffffff; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1a17; --panel:#13241f; --fg:#e3f0ec; --muted:#8fb0a8; --line:#24403a;
+  --accent:#3dbfa4; --accent-ink:#0f1513; --staff:#f0b43a; --logo-bg:#ffffff; --ok:#5cbf85; --warn:#e3785f; --field:#192d28;
+  --brand:#1a7364; --brand-2:#0f4a40; --on-brand:#ffffff; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--display);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 40px}
+.wrap{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.brand{display:flex;gap:14px;align-items:center}
+.logo{background:var(--logo-bg);border-radius:10px;padding:6px;width:112px;flex:0 0 auto;box-sizing:border-box}
+.logo img{display:block;width:100%;height:auto}
+.bt{min-width:0}
+header h1{font-size:1.45rem;font-weight:800;margin:0;letter-spacing:-.01em;text-wrap:balance}
+header p{margin:3px 0 0;color:var(--fg);font-size:.86rem;font-weight:600}
+header p.sm{color:var(--muted);font-weight:400;font-size:.8rem}
+.out small{font-size:.74rem;color:var(--muted);line-height:1.35;margin-top:2px;font-family:var(--display)}
+.staff{height:8px;border-radius:2px;background:repeating-linear-gradient(90deg,var(--staff) 0 20px,var(--fg) 20px 40px);opacity:.9}
+nav.subs{display:flex;gap:6px;flex-wrap:wrap;padding-bottom:2px}
+nav.secs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:8px;margin-block:-8px}
+nav.secs button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:12px;border:1.5px solid var(--line);background:var(--panel);color:var(--fg);font:700 .9rem var(--display);cursor:pointer;min-width:0}
+nav.secs svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+nav.secs svg circle{fill:var(--staff);stroke:none}
+nav.secs button[aria-pressed="true"]{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:var(--on-brand);border-color:var(--brand);box-shadow:0 4px 14px color-mix(in srgb,var(--brand) 35%,transparent)}
+nav.secs button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+header h1 .t{color:var(--staff)}
+header.brand h1{font-size:1.9rem;letter-spacing:-.02em}
+nav.subs button{flex:1 1 auto;font:600 .85rem var(--display);padding:9px 14px;border-radius:999px;border:1px solid var(--line);
+  background:var(--panel);color:var(--fg);cursor:pointer}
+nav.subs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+nav button:focus-visible,input:focus-visible,select:focus-visible,.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+section.mod{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:14px}
+section.mod h2{margin:0;font-size:1.15rem;font-weight:800}
+.hint{margin:0;color:var(--muted);font-size:.85rem;line-height:1.45}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:420px){.grid{grid-template-columns:1fr}}
+label{display:flex;flex-direction:column;gap:5px;font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;min-width:0}
+input,select{font:400 1rem var(--mono);padding:10px 12px;border-radius:7px;border:1px solid var(--line);background:var(--field);color:var(--fg);width:100%;box-sizing:border-box}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{flex:1;padding:9px;font:600 .85rem var(--display);border:0;background:var(--field);color:var(--fg);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--panel)}
+.out{border-top:2px dashed var(--line);padding-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+.out div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.out span{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+.out b{font:600 1.2rem var(--mono);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.out .big{grid-column:1/-1}
+.out .big b{font-size:1.7rem;color:var(--fg)}
+.tag{display:inline-block;font:600 .75rem var(--display);padding:3px 8px;border-radius:999px;margin-top:4px;width:max-content}
+.tag.corte{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.tag.relleno{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.err{color:var(--warn);font-size:.85rem;margin:0}
+svg{width:100%;height:auto;display:block}
+svg text{font-family:var(--mono);font-size:11px;fill:var(--muted)}
+.note{font-size:.78rem;color:var(--muted);line-height:1.45;margin:0}
+footer{font-size:.78rem;color:var(--muted);text-align:center}
+section.mod h3{margin:6px 0 0;font-size:.95rem;font-weight:800}
+.rows{display:flex;flex-direction:column;gap:8px}
+.rowhead,.prow{display:grid;grid-template-columns:1fr 1fr 1.25fr 36px;gap:6px;align-items:center}
+.rowhead span{font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+.prow input{padding:8px;font-size:.92rem}
+.prow .del{height:38px;border:1px solid var(--line);background:var(--field);color:var(--muted);border-radius:7px;font-size:1.1rem;cursor:pointer}
+.pres{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;font:400 .82rem var(--mono);color:var(--muted);padding:0 2px 6px;border-bottom:1px solid var(--line)}
+.pres b{color:var(--fg);font-weight:600}
+.pres .tag{margin:0}
+.btn{font:600 .9rem var(--display);padding:11px;border-radius:8px;border:1px dashed var(--accent);background:transparent;color:var(--fg);cursor:pointer}
+.btn.ghost{border-style:solid;border-color:var(--line)}
+.btn:focus-visible,.prow .del:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.legend{display:flex;gap:12px;align-items:center;font-size:.75rem;color:var(--muted);flex-wrap:wrap}
+.legend i{display:inline-block;width:16px;height:3px;margin-right:-6px;vertical-align:middle}
+.lg-t{background:var(--muted)}.lg-r{background:var(--accent)}.lg-c{background:var(--warn)}
+
+header.brand{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:var(--on-brand);border-radius:14px;padding:14px;margin-top:4px}
+header.brand h1{color:var(--on-brand)}
+header.brand p{color:var(--on-brand)}
+header.brand p.sm{color:var(--on-brand);opacity:.8}
+section.mod{border-top:4px solid var(--accent)}
+section.mod h2,section.mod h3{color:var(--accent)}
+.out .big b{color:var(--accent)!important}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.btn{border-color:var(--accent);color:var(--accent)}
+.btn.ghost{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+footer{color:var(--accent);font-weight:600}
+.seg5{flex-wrap:wrap}
+.seg5 button{flex:1 1 30%;border-bottom:1px solid var(--line);border-right:1px solid var(--line)}
+.rrow{display:grid;grid-template-columns:1fr 1fr 36px;gap:6px;align-items:center}
+.rrow input{padding:8px;font-size:.92rem}
+.rrow .del{height:38px;border:1px solid var(--line);background:var(--field);color:var(--muted);border-radius:7px;font-size:1.1rem;cursor:pointer}
+.krow{display:block;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--line);cursor:pointer;font:400 .82rem var(--mono);color:var(--muted);padding:8px 4px}
+.krow.cur{background:color-mix(in srgb,var(--accent) 14%,transparent);border-radius:6px}
+.krow:focus-visible{outline:2px solid var(--accent)}
+
+textarea{font:400 .9rem var(--mono);padding:10px 12px;border-radius:7px;border:1px solid var(--line);background:var(--field);color:var(--fg);width:100%;box-sizing:border-box;resize:vertical;text-transform:none;letter-spacing:0}
+#l_q,#pk_q{font:400 1rem var(--display);padding:10px 12px;border-radius:7px;border:1px solid var(--line);background:var(--field);color:var(--fg);width:100%;box-sizing:border-box}
+.filebtn{flex-direction:row;justify-content:center;align-items:center;padding:13px;border-radius:8px;background:var(--accent);color:var(--accent-ink);font:600 .95rem var(--display);text-transform:none;letter-spacing:0;cursor:pointer}
+.filebtn input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.filebtn:focus-within{outline:2px solid var(--fg);outline-offset:2px}
+.plist{display:flex;flex-direction:column;max-height:340px;overflow-y:auto;border:1px solid var(--line);border-radius:8px}
+.prow2{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:9px 10px;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--fg);text-align:left;font:400 .8rem var(--mono);cursor:pointer;width:100%}
+.prow2 b{font:700 .95rem var(--display);color:var(--accent)}
+.prow2 i{font-style:normal;color:var(--muted);font-family:var(--display);font-size:.78rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow2 span{grid-column:1/-1;color:var(--muted);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.prow2:hover,.prow2:focus-visible{background:color-mix(in srgb,var(--accent) 10%,transparent);outline:none}
+.pick{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 12px;border:1px dashed var(--accent);border-radius:8px;background:color-mix(in srgb,var(--accent) 7%,transparent);color:var(--accent);font:600 .85rem var(--display);cursor:pointer;text-align:left}
+.pick{flex-wrap:wrap}
+.pick em{font-style:normal;font-weight:700;font-size:.85rem;color:var(--accent-ink);background:var(--accent);border-radius:999px;padding:3px 10px;white-space:normal;overflow-wrap:anywhere;max-width:100%}
+.pick em:empty{display:none}
+.pick em.man{background:transparent;color:var(--muted);border:1px solid var(--line);font-weight:600}
+.esum{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;font-size:.85rem;color:var(--muted)}
+.esum:empty{display:none}
+.esum b{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:8px;background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--fg);font-weight:600}
+.esum b i{font-style:normal;color:var(--accent);font-weight:800;font-family:var(--mono)}
+.pick:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pk{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center;padding:env(safe-area-inset-top,0px) max(12px,env(safe-area-inset-right,0px)) 0 max(12px,env(safe-area-inset-left,0px))}
+.pkbox{background:var(--panel);color:var(--fg);width:100%;max-width:560px;max-height:82%;border-radius:14px 14px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;box-sizing:border-box}
+.pkbox .plist{max-height:none;flex:1;min-height:120px}
+.pkhead{display:flex;justify-content:space-between;align-items:center;font-size:1rem}
+.pkhead button{border:1px solid var(--line);background:var(--field);color:var(--fg);border-radius:8px;width:38px;height:38px;font-size:1.2rem;cursor:pointer}
+.pkman,.pklst{display:flex;flex-direction:column;gap:10px;min-height:0}
+.pklst{flex:1}
+.pkbox{overflow-y:auto}
+.chk{flex-direction:row;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-weight:400;font-size:.85rem;color:var(--fg)}
+.chk input{width:20px;height:20px}
+.empty{padding:16px;color:var(--muted);font-size:.85rem;line-height:1.45}
+.cred{display:flex;flex-direction:column;gap:3px;align-items:center;padding:14px 8px 4px;border-top:1px solid var(--line)}
+.cred b{font-size:1rem;color:var(--accent)}
+.cred span{color:var(--fg);font-weight:400}
+.cred small{color:var(--muted);font-weight:400;max-width:34ch;line-height:1.4}
+</style>
+
+<div class="wrap">
+  <header class="brand">
+    <div class="logo"><img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAQDAwQDAwQEBAQFBQQFBwsHBwYGBw4KCggLEA4RERAOEA8SFBoWEhMYEw8QFh8XGBsbHR0dERYgIh8cIhocHRz/2wBDAQUFBQcGBw0HBw0cEhASHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBz/wAARCAEiAbgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD7+ooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiignAzQAUVw2rfECJZbnTrFobLVUbbF/bKvbxTe6Nj5qxLjx+be6fUL3T9RsbvTz5VxGczWsqHBO1lyFJHKsQAelAHqlFVdN1K11iwt76ymSe0uEDxyIchgatUAFFRSXEUIy8ir9TVC41+ztxy/5nFAGpRWB/wAJKJTiC3kl9NiM38hSjVdTk+5ps/1YBf5mgDeorCF5rJ6aefxkQf1pwvNYH3tPJ+kif40AaVpeC6e5j2lXgkMbAn2BB/EGrNczHc6jb6pNcHTJvKnjUPt2thlJweD6H9KvjXkU/v4J4v8AfjYf0oA16KowavZ3HEcyE+mauLIrjKsCKAHUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQBBeWNtqEDQXdvFcQN1jlQMp/A1gaV4D0fQtWfUdMSa0aWMxSQRynyXXt8hyBjtjFdHLKkKF3YKo6k1zGq+IWZ1gtw5aU7Y40GXkPt6D37UAV7/AF2TwgWWS2W70vJPmWyASQnPO9RwR7jn1FOs/EU3iSMS6QRcW548xGwi+xb19qnt9DSKB73XJoljjG8wlsRRj1Y/xfyrkLvRL/WtQfV/A5fRQQfMvJFxDe/7sB6j/bOPagDr7jTobGLz9Y1RYkP8KNsB9snk/hUdvcwEFtG8PzXLY4nuFESn/gT/ADH8BXJeHPFWnaNqcVn4wtGsNedtiajdv5kFw3okh4jP+yce2a9ZDKVDAgqRnOeMUAc1YS63rERf7baWG07XhihMkkbehLEDP4Va/wCEell/4+Na1KUnqFkWMf8Ajqis7VtbtEvDLpDPeatH8rw2iGRZB/ddh8q+xJ4q8t34ivQDFp9pYqR1upTI4/4CnH60AUm8P2tpqax3M17Lb3XETPdyfI4H3eG7jkfQ1oSeFNPaNgn2lHI4YXMmQfX71V7rQNU1GExXmtlUYg7ba2RMEHIILbiDmrA8P3B+/rmpsfZkX+S0Ac7HpGqwxxoZLqGTyWbz/tL+WXGOGBb5c8juP5Va0j+27i6EUlxfWwO9w06K4KDgDp97OfqOa07zwzNcWlxANa1LEsbJhnQjkY/u1keDp9W1jQYJxrJ+0wlreeOW3VgsiHB6YPofxoA25dO1E/61dOvV/wCmkRjb8xmqFrcK8CzfYb+1QlgHgbzkGCRnHJ7elaYfXrf70dhdqP7jNEx/A7h+tVNK1FtI06C21Cyurdowd8gTzI8kkk7lzxz3AoAntr6aXi2u7e7x1QnY/wCIP/1qe/iO3trqG0ulaG4lztVh2Hf6VX1zWdCh0mbUrl7eeKIcFCC5bsoI5BrzXwLqOoa/4hu9RG2Q8W8cc4LqqnJIznIwB79aV9bGkabcXN7I9pjlSUZRgQafXPny7dv3qPp8n97O6E/j2/HFXFvp7QD7Sm6M9JU5U0zM1KK5zV/F2kaEzXV/q0FtaRxl5vOZVSFc/fZj9309yeK8om/bA+Ftprcumz605jVyq3tvA8tuRjOSwGfbgH60Ae9UVz/g/wAceHvHulf2p4c1a21Ky3bGkgb7jYztYHlTz0IroKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigApksiwozucKoyTT65PxPrCxCVDII4IFLSOeegzQBT1zXJbiWGC3jMs0zbIIFPLn1PoAOSe1aNvbWHg3S7nVdWuU81U3XF0/YdkQemeAByT71H4P0mSOJtXvoyt7eL8iN/wAsIeoX6nqff6VjaXn4i+I31aX5vDGjTmOwiP3bu5U4ac+qqcqvvk+lACaXcL4yvxd+ISbO2ibfaaLcDYcDpLKD989wOQPrXoSOjIpTBQjgr0xWH40tILvwtrInhjlC2czDeoOCEPIr4N0Lxt4i8NbW0nWr60AH3I5js/75PH6VvSouom0zws2zuOW1IRnC6lfbpY+4/HP9iXNiLDUbQX91eApDZJGJJJ/+AnjaO5OAPUV5TqHhDxf4JgtX0v7RqmhJ+8m8Mz3bNj1WGbqwH9xv1r1T4faOItEstavZ3vda1S2imuLyUDcdyghFA4VRnoPrXWTQx3EZjkQMh6g1g1bQ9uEueKkupwvw7+Jvhbxjbmy0pl0/Ubf5ZdKuEEM0JHUbO/1Fd9XlHxF+DukeLmW+YzWWrwc2+r2fy3EJHTfj/WL+org7X4t+M/g/cw6f8RbF9X0Jztt9fsV3bh23difY4P1oKPpOivOPDXjDVfiXYrqPh670/TtGc4EzMLm6P1jB2xn2Yk+1Wtc8Npplouoaje6tq1tAc3SNcMuE7uqR7QdvUj0zQB3bSIn3nUfU4rzPwxqA0L4laxobti21eI3ttzx5sZ2SAfVdh/CuosvB/he5tori2020nhlUOkv3w4PIIJJzXlPxt0q18MWula/aWiLb6HqEU0sMeVBgl+Rxx7qPzoA98qK4njtoJJpnEcUalmZjgKB3rnrPQLG6tILvS9R1G3hnjWSNorpnUqRkHD5HevGPif47vJJ7jw5b6qLyzjYCeYRhGZh/ASvBA+g5qZyUVdm+Gw8sRNQiZXxB8aJ4n1h5LVFjs4yUiwuDJ/tH1rt/g4uox21xJbxwzQA+Y0bHaxJ4GG6dB0NeELP50uRwBwK+oPhhBFpHhZJpOtw2EA5Z8DGAO/OaypNt3Z34+MaVNQjt/kdlb6pbXLNDKDDPjLQzjacfyI+lcR4o8SnS72DSfDmZNXvTiO1HMeD1cj+BR6/oaxfid8TI9Gng0axt01DxNcMBbWKjeIGPRnx1b0WtbwJ4Nv8AwbHNq+q/8TPWdQAe9mHMsX+ynqo9BitzyT5e/bF1B/DXhfw54VaSX+09Tme91J2PyzCPATGP4dzHA/2RXx3jFfVX7diNdeO/C+qQqXsJ9LMKTgfKXSVyy+xAZcj3r5UFAj1P9nfxtqvgn4ueGpNNmm8jULyKyu7ZCds8UjBSCOhIzuB7Yr9XhX5E/BTUH0z4veCruK2W5kj1SHEROM5bGc+2c/hX6429xHcJujYEUAiWiiigYUUUUAFFFR/aId23zY93TG4UASUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFRTXEdvG8ssiRxIMs7kAKPUk15f4q/aE8FeF7gWwvZNTuA2HXT1EgT6sSF/AE00m9jKrXp0lepJI9VorjvCXxQ8K+NY1Ok6vA85HNtKfLmB/3DyfwzXYA5oatuVCpGouaDuhaKKKRZV1G6FnaSSnqBgfWvPI7U69r9lprjdbr/pd1/tIp+VT/vPj8FNdT4rudqQQZxuJY1Q8A23mHVtSYHdPP5CE/wByMY/9CLUAQ/FLVr220CHRtIcLrfiCcadatnHl7gTJJnsFjDHPrir+jzS+GdLs9M/4R+5hs7OJYYzaus6hVGO2G/Ssd3XVvjATKwFv4d0sbdx4E9y5H57Isf8AAq9CoA4/xJ4o0m48OazD9sSKdrOYCK4BicnYeAGAzXwB/wAsz9K+9vjBqsei/DfxFdyRpI32VoY1YZ+eTCD9Wr4Jb7p+lehgtmfAcafxaPo/0P0W8JAL4V0MAYAsYMf9+1rZrH8J/wDIraH/ANeUH/osVsVwPc+7o/w4+iOc8aeLYfCGkC58lrq/uZFtrKzjPz3M7fdQe3cnsATWVo/g29/sO6j1+4h1W71JjLeWkyg2oJH+rjXHygdM9+prGtYpPGXxW1i684pa+FIEsrU7QwF1MoeV8HjITYv4mumvNR8VaOxY6Tbaxaj+Kzl8mcD/AHH+U/gwpGh4D4m+BmveCtTn8S/CXUrmyuovnuNEkfkj0XPDr7H8DW18Ov2p9O1C6/sHx5aHQdbjbynmkUrCzdMMDyh+vHvXqDfEnwzczLDqk11od+h+UalA1uyn2c/KR+OK5/4hfCvwl8WrBW1MQR6gw22ut2BB3HsGI4P0P4GgC22qr8MtTSdZRP4F1R96SxncunSMeoI/5ZEnPtnPTNbnxF0KPxX4d1TTFKuup6bNHGw5BdcPGfzr5B1uy+Jn7Ohm0+7X+2PB1wdo3qZbVwfbrE3t0+tegeDfitrvhLw5bvc6Ffx6G/73SDf/ACvAxUhoOTl4huyrY4HBpNpK7KhCU5KMVdsj8F/Gu7tPhDaaCgkXXbaR7IysP9XCOjA+vO32xXDz3JRMFiXkPJPJ96pJN50007KiGV2kYIMDJOTgfjVVZ/tE5Y/d6D6VwSqe0lfoj7OhgVhKCj9qX9M6TRYjc3cMShWJYcN0/GvR/GnxU0/4Y6PD4Y8LsLrxNMgE0wO9LRn6qg6Bufujp3rwrxJ4kufD1kn2OQR3NxlBIOqLjkj3r239m/4JyAQeNvE0DNPJ+8sLWYZIz/y2fPc9h+NdOH1jfueFnVo1o0l9lfmdV8BvAcWkXVzrHiNpG8ZXAMnk3QO+KM/xjP3ie5HTpxXvlYPim10maxE2p3kVgbfMkV60qxPbt/eDHp7g8Eda8H8W/theFPBOnXlmLiLxF4htj5cX9mt/o9x6O0nRMd1Geelbnjk37ZHgvw9qXwn1DXr5/s2p6XIklo6nAmldgpQjuSCffj2r8369M+Kfx78a/FweRr1/HHpSy+dFp1rGEhjYAgH+8xAJ5YnrXmWaBH07+xj4Di1nxVqnjCaCK9Xw6ESOyOC5eUMDIB6qoOAepJ5yK+5VmXT4U1PTZfP0mTlgOTD65HXHr3Ffk54R8c+JPAd+174b1q90u4fAkNtJgSAZwGXow5PUd6+kvhl+2jqWlawg8ZabFcWV0Qt3c2CbCT08wxdC3rtxkds0Aj73sr2O+hEkZHuKs15poXifRr6xt/EPhfU7fUfDdy20SwNkW791YdVHPQ4Kn2r0S0uku4RIh+o9DQMnrjfiv4wfwD8OvEfiKJPMubC0ZoExndKflTjv8xFdlXjX7S/iObQPAFpFaajLY3uo6rZ20ckE5ilKmVS4Qjqducj0z6UAeUWPi/wF4O+GHgTxV8SpvEeqa34is23N9suZSXQ5c7PMVUwWAwK5j4g6j8O/EnwXvfEvwn8PTWmuW2t20UcqWrG7SVSJC3BYhSo69DXkdz5+q/BnQr3UJJbp5NY1CFDcM9xKP3UJDLkMVG5NpKggbunORLqlhZ6f8FpNX0jzknsvEluyW75LqDE+2SXGOWK7QML8qKcAtyCufor8PfEU3i3wRoOt3VvJbXd9aRyzwyIUaOTb84KnkfNmulr56/Y01afVPhBKtzFsmttWu42POWLMJCSD05cjHtX0LQNBRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRUc88dtE8s0iRxINzO7AKo9ST0oAkoryHxd+0V4O8MrJFaXL6xerx5VkcoD7yH5fyzXgvi79o/xh4iaSLTpU0WyYEbLX5pSPeQ8g/7uKuNOTPNxGa4ejpe78j628T+OvD3g63M2t6rbWgwdsbNmR/8AdQcn8q8J8X/tWxIZIPCulGXsLu++UfURjk/iR9K+Y7i4mvJ3nuJpJp5Dl5JWLMx9STyajraNFLc8PEZ3XqaU/dX3s6bxT8Q/E/jORm1rWLm4iJyIA2yFfogwKpeE/DVz4v8AENjolnJFFdXjFI2lJCAhS3OPpWNXoHwQdIvit4ZeR1RBM+WY4A/dtWj0Wh5tNutWiqjvdozvFXwy8WeB5BJqukXEUKn5bqD95Fn/AH16fjit3wh8evGnhNkT+0TqdiuB9nvyZOPQP94fnj2r7p2q6EEAqw5HY15n4u+Avgzxb5szaf8A2ffP/wAvNifLOfUp90/lWPtU9JI9+eUVaL58LUt5Hn+k/tX2t40UN34e+zytgM5vAI8/Urx+Neoad4+1nU7ZLm08Iz3du/Ils9TtZkP4h6+dfF/7MnijRN82izQ61bLzsQeVMB/uk4P4H8K8vtNR8S/D7V2FvNqOi6lGfmjIaIn6qeGH1BFHs4y+FkxzPE4Z8uKp/P8ArQ+u/EXi7VJb7M/hLWIiiAbQ8DH16h67j4ejPg3SZSjI08ZnZX6guxYg/wDfVfKmk/tDarK4HiKzivsrtNzAoSTHuv3T+lfQXwt+J3hbXtA0nTbXV4E1KKBY3tZj5cm4DBwD978CazlCUdz1sPmOHxGkJa9nozEvrlo5/ibqAjglkOrWdoq3FnJdptSGH/llH8zcuxGOh5qr4Gk8Yp4kW5vk1z+wlyxEdqtrbBe2YZGaU/8AATWzY6Lc6zqnxE0u2mSK4TWra8AkLBJFNvCwVipDBTtI4qfS/hrrdrqUGtahq63uvTXiSTzrNLHBaWyn/UQRZIII4Jbk5JNQdpzH7Q3jrSn8DGyje5+0S3sAMclpLGrANnG5lx1A718mEfKR7V9sftGaa+pfCjVvLzvtZbe549FlXP6Zr4mb7p+lehg/hZ+e8Zv9/SXk/wAz7T0T47eAdO0PTLWbWnSWC2ijdfsc5wQgBGdnPSppf2kfhpBzL4iKD/as5/8A4iu00DRtOn8PaSZLG2Ym0iyTEMn5BVtvC2jtz9giU/7OV/ka4HuffUvgj6I+fPht+0N8OdEbxfNqniJIJdR166uoi0Ev7yE7Vjb7vTC12p/ar+Eg4Pi6AH0+zy//ABNSeHNKtv8AhZnjLw1qm6WMJb6lpqyYOLd12OoyOQsiH/vqu1l+HWhTfesrZvaS0gf+aUjQ86v/ANp34M6lA0F54jtLiFuCklrIw/Va851bx78BZ5JLjRvF9zod0/V9OWeJW+qhdp/EGve5fhL4alzu0XQ3z/z00qE/yArA134U/D7SLN7zVvD/AINtrRBlprmzWBR/wLdQBzvwa8X2nxBlvdCj8UjxTo+mKs7SXNtslyW+RHOAHUYJ6A8Cu613StM8SayzX1jb3KQfuo/NQNtHfHpzXlXg/wAe+ANB8Yw2XgDw+ki3qtBeX+j2sgtFwCULOwAOGHb1NetaQvHmOemWYn9adu41Jx1TOK+IvhTwxZaNHYW2kWkN9enHmRJho0HUj8eK+eNS0G40G+a2nU46o+OHX1Fe7atqDeIdenu+TCp8uIeiDp+fWrOreD7XxFo0sVwywyRKXjnbjyyB1J9PWsK1Hmj7u56+VZl7GuvrDbi9/I+fdM0SS68YaNfXOiXes2sKk29nAqlJZgc/vGYgKo6++K+oNO034g+K0RtU1qx8OWJAxa6e6zzgehfhV/AGuY8H6Tf6F8J/Emp6bPENXh3SWU0gVkDoOOvBUliOexrldM1X9onUkV49K8K3AIz8whz+hqqUeWCicmZV1iMVUqx2bdvToeMfteeIbDSPEMPgbSJLidrWNZ9Tv7qdppppGGVjyeAoXDEADkj0r5iFdL8QtY1LX/HHiDUNY8r+05byQXAh+4rqdpC/7I24H0rmq0OEUnNJRRQIKXOeKSgdaAPpT9i/xxF4f+I934b1CUf2V4jtjCY5D8nnrypx0yRuX8q+6LSSbwxq32CVma1cFreRud6DqpP95c/iMe9fk34W1hPD/iTSdUlWRobS5SWRY22syA/MAexIzX6neDdcg+JXgpDFeRzahaBHhu16SZGYpvo68H33DtQNHpUbrKiupyrDINfLX7cL3sfhHwY+ned9uXW1aHyQS+8RsQQB3yK9q8OeL7oxG3k0W+Z0doykZQlXU4YcsO4rzr9qDWo5PhDq93NZapp9zZMj207RqMSv+7xuViVyJDyKBnzN4U+G+q+LvhZpD6h4wi8L3thrV+EfU/OjdwyQgqhA6Ag5xx831rA+IvgS88AeB9BsNF8Q/wBvPd6rc3F7c6R5xjyI4fKWQf3hhyM+tT/AKK08V/EjS4fFGoalfaRc/ale3e6kTO2IFWOxwRy30r7G8Q/A3wDP4S14aJZn7elpK8M6apcOYpfLbYSfMPGRnHtQSef/ALCst+/g7xel+10ZBq+7bcbshmiUsee54Jr6trw79keaG8+BugXiyyzXlw0v2uWVixaVXKdT1+VVH4V7jQUgooooAKKKKACiiigAooozQAUVFPdQ2sTTTypFEvLPIwVR9Sa8k8X/ALRvg/w0ZILOeTWb1P4LP/V59DIePyzTSb2Ma2Ip0VzVJJHr+R61znijx74c8HQmTWtXtbRgMiJnzK30QfMfyr5H8XftF+MfEu6Kznj0a0ORsss+YR7yHn8sV5PcXE13O89xLJNPIcvJIxZmPuTya1jRfU8XEZ9COlGN/Nn0v4u/atXa8HhbSDu6C7v+n1Ean+Z/CvCPFPj/AMSeM5mk1rVri4QnIgDbIl9gg4rm6K2UIrY8LEY+viPjlp26BRRRVHIFFGcV2nhH4T+LvG22TS9JlFqf+Xq5/dRfgT978M0Npbl06c6j5YK7OLqe0s7q+kZLS3muJEBZlhjLkDuSB0FfVPhH9lXSrExXHiXUZdRlHJtrb91D9C33j+le4aD4X0fwxa/ZdH0y1sYO6wRhd31PU/jWTrJbHsYfI609aj5fxZ8L+Efi74w8Fsqafq8stqvBtLzMsX0wTlfwIr3nwh+1Ro98I4PEmnS6dOSAbi2zLCfcj7y/rXpni74P+EPGfmSX+kRR3jj/AI+7X91KD65HB/EGvBPF37K+s6eGm8N6jFqUQ5+z3OIpfwb7p/Sp5oT3On6vj8H/AAnzR/rp/kfUGheJdH8S2oudI1O1voSMkwSBiv1HUfjSa54a0fxNbG31jTbW+gPGJ4w2Poeo/Cvz8urDxL8P9XBnh1DRtSjPyuN0ZP0YcMPpkV6j4R/ac8T6IqQa1DDrVsOPMf8AdTgf7wGD+I/Gk6TWsTalnNOX7vEx5X96+46j4hfs5aVBdM/h27nsy671gnBliBz03D5gPzrxLV/hz4m0SCS7l0ueayhlaI3VspkQMvXOOV9eQK+nV+M/g/xxBaeTeix1AHBtr5Qh59HztPPoc+1db4Buhba1q+mufluVS9iBzzxsfGfcIfxpKpKOjLnlmExS56Lt6f5HyH4K+LfifwNfXF1Y3gulugizx3uZRIEBC853DAOBg19B+EP2o/D+qeVB4gs5tJuW4MyZlg+uR8y/kfrUvx0+F3h250+x19bNLBLe/hGp3Fmio7WznYzHjHyllbOOgNeceLv2Xdf0sNP4dvYdXt+oikIhmA9sna35j6VV4T30Ob2OYYL+G+eP3/hv9x7l8S/FGh6t8LfEktnq9hcJcWMgiMc6tvJHAAz19q+HW+4fxqzqOlar4ZvpLTULO60+6IKNHMhQsD1HuDVdgSCB3FdmFjypnyXEeMeKq03KNmlb8T9HdAAXQtLA6C1iH/jgrRrzPwB8Y/B3iSysLC31eO31BIUjNteDymLAAYBPDdOxNelggjI6V5rTT1P0rD1YVKacHdHl3xbs7nQLvRPiHpsDzXHhxmTUIYxlp9OkwJgB3KYWQD/ZPrXT33jy0S2hl0iw1DXHuI1lhXT4dyMrDKkyNhACD611MirIjI6hlYYKkZBHpXzrbfELTvgR4z1XwfeNdXHhQqLzT0iTdJp7SctbjJ+aLOSvdckdMUJN7F1a0KUeao7I7m9j+KnirKW7aT4Rsn75+2XePrjYp/OsDU/g34Q8PWN14m8e63d6z9iQzTXmrzb0TH91Gyo9gBXWeGPjX4S8T6ZrWpw3U1np+jRrLdz3qCJUU5wc5Ofumvz++P8A8f8AXf2hfFtv4Z8LwXf/AAjqT+XZWMSnzL2TOBI4H6DoBQ1bRjp1I1I80HdHv/wr8bD4seN9W1rS7NtP8IaKv2LTLbJHmu3LSuOmdoGB2Br23xRqZ0zQjbxHFzefuxjqF/iP+fWvOvgL8P5vh74G07RrtUXUctNebTkCVjyM98DA/Ct3VLs63rbuvNvD+6j9wDyfxNBRLoVj90YrN+KHjDS9D0mbSLi6gjEsZ+1mQ8LGf4T9f5Vr67qx8I+FtQ1SOJZbuGFjbQscebJglRXif7LN+vxL0vxZq3iKVb7UtLvBcvBMNwdJDlsg/wAIAdcUAbMv7U3g/wAHjw94RXSLu90CFFfULkR7VbPK7EYfOnc9MgcV1viPTvBuneAtc+I/gPxVfWmlwW73Bt7K7zEkpHyp5TghcsQNuAeeK5v4gfBjw/4S1WDSvENi938PtRkKaZqKNifRZXOfIL/88ieUzkA5XvXgfxr+BfiD4LaeLi21wah4N1mVUjkSTY0jD51EkecEjGcjjjtSA8PkdpXaRzl3JZj6k8mmUpFJQIKKKKACrFlZT6hdRWtrG0txK21EXqxqvXe/BbRLDxL8VfCukai1wtreXYjJgwG3bSU5PbcBn2zQBw0sbxSPHIpWRGKsp6gjgivpv9kP4tP4a8XWfhzUJwLG8JgiZz0DnIX8H5H++9cN8bPhTrWgfYfGcVrJc6DrcCTTXUMfyW9z9yRHx93LDIJ4OfavHY5HhkSWJ2jlQhldDgqR0IIoGfrrr9u2jeI4ruH5bfUuG9FnQcH/AIEo/wDHPepvHfgrSPir4Lm0PWjc/wBnXDxyyrbSBHJjcOFyRxkr/wDqrzL4KfEZ/jX8FjLcSrJ4m0bEVzj7xmj+aOT/AIGAPx3VpfE/Ubm8+B3jV9OuXglfSXuY5EkKMqgAsARzyuRQM+AdY/4RWya7uv7MM0qX0loNOilljMMS5AkMjb1Zj6A8EdCK19D0fTvE3i7w1aeGpoLCLxFcR2f9nfaZpJbPDAFpiqIrZGcBc8H615Ms0oXAkcL1xuOK04fFmvWkcCW+tahEttgwiO4ceUR0K4PGPagk/WX4UfDez+FHg228M2F5PeW1vLLKss6hW+dixGBxgZrtq5v4falBq/gbw7eW+o/2jHLYQH7WWBaY+WuWbk4bOcjsc10lBQUUUUAFFHSoLq8gsoHuLmaOGCMZaSVwqqPcngUA3YnpM1474v8A2kfB/h0vBYSS6zdrn5bPAiB9DIePyzXgXi79ofxl4nEsNtcppFk54jsuJMehkPP5YrSNOTPNxGa4ejpe78j668U/ELw14Mi3a3q9vauRlYSd0rfRBk/pXgvi/wDatZvNt/C2k7ey3l//ADEY/qfwr5qmmkuJWlmkeSVuWd2LMfqTTK1jSS3PCxGd16mlP3V+J0Pifx14j8Zy+Zrmr3N4AcrEzbY1+iDAH5Vz1FFa7HkTnKb5pO7CiijNBIUV3PhH4QeMPGbRtYaTLDaPz9rvAYoseoJGW/AGvevB/wCyxo1ksc/iW/l1K4GCbe3zFCPYn7zfpUynGJ3YfLsRX1jGy7vQ+WNL0m/1u7W002yuLy6bpFbxl2/IV7P4Q/Zg8Sa0qT67cxaNbnnysCWcj6A7R+J/CvrHRPDmleHLRbTSdPtrK3UYCQRhc/U9T+NaYGKxlWb2Pcw+RU4a1nzfgjzjwh8DvB3g/wAqaDTEvb6Pn7VffvXz6gH5V/AV6MqBcAAADsKdRWTbe57VOjCkuWmrIKKKKRoFIRmlooApalpNlrFo9pf2lvdWzjDRTxh1P4GvGPF37L/hnWVkm0OabRrs8hFJlgJ9NpOR+B/CvdKKak1sYVsNSrq1SNz4R8XfAnxn4TZ3OnHUrFQT9psMyAD1KfeH5fjXN+F/HviLwXqEV1pd/JHJb7lEMw3oA2NwKnpnA9OlfojtryP4kfDTQNbu5J77TImM/wA/2iJdkit7sO3TqQK1VW+kkePVyWUHz4Wdn/XU4DRv2mNH8RaZcaN400Z4re9ie3nntPnjZGGDlD8w4J6Zr0z4KeNLbxJ4YbSzqEd9f6FIbJp1PNzCv+qmwefmTbn0YMK+fZ/2ftQ1G5voNB1GCa5gAljtrv5GmhPRlcZUkHII6DjnmvO9V8PeJ/AOpK17Z6hpN3GfknXcgJ/2ZF4P4GnyQl8LM/r+NwmmJhdd/wDg7H2v8Z7S2uPhn4leeCKV4rNmjZ0DFG4wRnoa+Eema9A/4Xn4svPC+oeHNVni1KzvYTB5064mjB77h978Qa8+PAP0rrwsXGLTPlOJ8XTxVanOn2/U1pvBHiGJtSH9k3Mp01wt0IV3tDkBlZgOQrKQQ2MH8DWx4S+LvjDwXiLTtXke1X/l1uv30Q9gDyv4EV9Rv8PF0nS9K8T+BYoYfEltbq0ivKSmrREAtDK5JJJ6ox+6cdsilTwj8P8A41aNJqLaSLa/V2iuti/Z7y0nHDRygfxA/wB4EHgjIINcntU/iR9Y8mlBKphZ2f8AXU5Twj+1RpF+YoPEunS6dMeGubfMsOfUr94frXjfx81zTvEXxGuNQ0q8hvLKS1g2TQtlTheR9fauv8d/sx3+gW11qOi6xbXOnW6GWRL5hA8agZJ3/dIA9dtfPdlfWuo24uLO4juIGJAkjYMpI4PNVBRveJw46tjFS9liY6X3/rQ5vxrbeKvE0mkeCvDCXVy+u3G6Syt+k7R/dLn+6u9jzx3r7F+C/wABPD/7PXh4X+pyw3/jy/hKm4C7hBkcpGOyjPLd68g+GXxLl+Gl/e3lvpNneTXUYi86UESQqM52H0PGR3wK9btfHXg7xHrcep2Wq6lDrF7CsV7HqUxWOQqcqQudgIyQNuOO1RUg73PVynGUVQjScrSX+Z2V3eNp+lOVP7+f5F+p6mq2h2Kou9iFVRkk9hVad/7Sv1VDughG1CDkE9zXP+NvEdxBd23hrS0Mk1xGXuXTkrkgJGP9psk/Qe9Znsly3gn+JvjCLT7bK6VanLOOgQHlvqegryv4a6XH8Gv2v/EXghgYtC8VWsi2qnoVdfMQfgQ619cfDfwWng7QI4pAp1G4xJcv79l+gr5z/bY0W48Mah8P/itpqH7T4d1KOG6ZRyYi4Zc/iGH/AAKpY0fTtvp1l4r8Hpp2rW0d1aXVv9nuYZRkMR8rfjkGvib9q7QtV8G+ENH8Mak897plrqBn0bUWbJMRQh4ZfV1+XB7jnrmvtfwfqMOoW109s+63mkF3Cc9Y5kEgP5s1fIP7f19ef2h4JsSjrp4iuZw+75XlyikY9QMc/wC1QNnxkAWIAGSTgD1rrPiD4V8T+C9SsdI8VWi217DZxtboChPkNkrkr6EsOea5SI4mizwNw/nXv37XPizw9408b6JqXh6WS4jj01baa68pkinZHODGx++BkrkDGR1NBJ8+0UUUAFd78FPE9n4N+LHhLW9QEZsbW+TzmddwRWypf6ruz+FcFRQB+sngPQNP8Y/B9NG1OIXGl6ol1E65+9G00mCD9MEH2Ffnn8c/gZrPwW8Q/Z5/Mu/D92xNhqW3iQf3H/uyDuO/UV9t/sx3/iDVPgn4YvredJBFHJbm0vVwHEcjKGSQDIyAOoYV6H4sg8P+NtBuvDfjPSmt7S8XYyXQHl7uzRzDgMDyDkGgZ+ZnwV+KF78J/H2l63FPMNN80R6hbox2zwHhsr0JUEke4r6o+Jfxc8Maj8KPFGj+GPENleX19N/Z1pDBJ+8aOeXghCMkBGIOB2r5y+K/wE1vwDrevf2RDdaz4b0udIn1CKPJi3RrIBIFzjAcfN0+leVafFczX1rHZeYb2SVFg8o4feWG3B9c4oA+ofEP7PPhjWvj3p/w20GS50uC20UXOpXURNxtuNpbPzngHKDHHX3rhD8CrC3+Ouq/DKXWriQwW0ptLtYgjTXAtvNRCvzYBPBxXqH7Ket6t4j/AGjvEeoa5efbdSGkywTXOMeYY3hjz/45Vn4l2v8AZXxi8f8AjuBM3HhDxBolzI4GSLd4tkg6dPu0Ae//ALJ6aUvwN8OnS7Zrdv3i3iMzEm6Vysh56ZK5wOBXtdfP/wCz66eGvHPxU8EKBFa2uqrq9hGDwbe5XdkcdMgfnivoCgaCiiigD5t+Jf7St9oOt6loWhaTEtxYyvbyXd224bhxlUH9T+FfPHiXxt4h8YTGTW9WurwZyI3fEa/RB8o/Kr/xU5+JXivH/QRm/wDQq5GuyMUlofC43GVqtSUZy0TenQKKKKs4QooopAFHSikb7p+lAHu/g39mDX9aWK5128h0uzdQ4jjxLMwIz0Hyr+Z+le++D/gj4N8HLFJb6Wl5epz9rvsSyZ9QDwv4AV3OmDGnWf8A1xT/ANBFXK5JVJM+4w2XYeik4xu+71EC4GB0FLjFFFQegFFFFABRRRQAUUUUAFFFFABRRRQAVS1WwTUbN4iBvHzIx/hYdD7fhzV2igDyG/t7vT7uK/tAF1OxfK7zgSZ4aNjk8MOOWYg4OBXo1hdab4v0RJjAk9ncKVkt7iMHaw4ZHU9CDwQaqeJdHNwv2yBSZkGGC5yR7Y5/AEZ7muIsNSl8K37ajbo0unXDBby3iAOSB/rEC8FwOqruyOpyKBNX3PF/jP8ACLTvA19f6tBb3a6HfjdaPbfMtlc/88ZF/wCeT87WH3W4PBFeKAV90fGG6t7/AOEfiK5tpUmt5rMPHIhyrAsuCDXwvXo4RtxZ+b8XUYUsVTUFa6/U3fDPxA8UeB5iukatc2ihsvbOd0ZPoY24ruk+Oty+sQ+Io7CLTvFCII7me1JNrqkY6R3EXUEfwyKSV9COK+ntc8AeFvF2g2x13S7WXbbKftWNkkY2jJ8wYI9fSviBdO03x18Rtd0X4cQ3V94X0hMXGuXsgW2SUfwK2Mvk8LgZPpjmuXmhLc+kjhMdhIp0Jcy7f8B/oanxe+JHxA/aj8R6f8NvBmkXWh+H5Y1m1O5unAWQDG4s68GNeyjlj1A6Vg+I/AGkfDDUE8MaJdy3llZQRlrqQY8+Vhl3H+yWJxjtVrXfB3iXweVk1XSr+wVh8szIQhz/ALY4/DNZWp6vfa3dC61C6lurgRrF5spy21RhRn2FVCHK7pnLjsxnXpexqw5ZJno/wh+Etv8AFGy17fqUthdWBi8pwgdCG3ZDDg/wjoa5nX/hvrmhyTEQC9tI2Kie2+YMAeu3qPyrufgb480rwdpniq2vrxba91FIltS4O0kbgct0GN2ea9IsDHdiOVJEaBBu8xWBX3OaUpyjI6cHl+HxWGi72l5Pz6o+cNB8Za54Yk/4l99JGqHmGQb0+m09PwxWhoeteHG8R3PiDXLbWoNZkYSJe6JeeRIsmfvkHg4HQEGvUYfDEHxa8apZQ2qx6fbj95cRqFYRg8sSOpJ6Zq94u/ZTvbcyT+GNWjuI+q2t98j/AEDgYP4gUc0JbjeEx+EX7mXMv66M6Lwn4x1vWgkfhn4qafqEnaw8TaYsdx9N8RTd9QDU3xW8M/FP4g/D7xB4U1Hw/wCEr6HUbZkWe21GaJ0cfMjqjRnkMAcZ/GvmTxD4Q17wlceVrWlXdiwOFeVDsY/7Ljg/ga6nwd8avGfhFo4rbU2vLJf+Xa+zKmPQE/Mv4Gh0eb4WFPPpUtMVC1uq/wAmd/8As5+PPGGqfDHwvDoGladf6vZwTaRqCajeNB5L2smE6KxJKSjj2rkP2wrDxXe+ENG1HxlceFbO4trorY2OmtK9zNuAEnzvgFVABOB1xU3wZ8dWHg74heJtRvSthouv6kupLBGGdLWZ0ZJu2dpJVh9MV3n7XXh3QviH8IG8WadeRXd14edZoJrVxIpjkZVkVsdBjDe22sp05Q+JHsYTMMNjFehNP8/u3Phn4baCPE3xB8MaQ01vAl3qEKPJckCMKGBbOfUAjHfOK+nf26/h3Dpl54c8YWbCO3mQaVJaqAqx7AzoVA6DBYEAdh618reC4NPufGPh6HVpXh0yS/gW5kQ4ZYzIu4g9uK+r/wBvrxArX/gvw6i/LDDNfFvXcQijOefut+lQdZ8ZUUUUAFHHfp3oooA/ZDwFNpNx4J8OzaGkUekSWELWqRABVjKDAAFb8sSTxtHKivGwwVYZB/Cvif8AZZ+NSeB/BOl6D4oju7TSru5l/szULlMWsgLYaJZegYPu+VsZzwe1fV/i7xvZeH/A2reI4JVnW2tyYVXrJKeI0A9WcqMe9BRhfCWztWh8Y3ttDGlnfa7ciNEUBCkYSHgemYzXyx8SPBXhTSPjh411iw0+PTtO8G6PHqjRWqbI5b98sm4HjksDgYzivsj4d+HJPCngnRdJuDuu4IA1y396ZvmkP/fbNXwB4p8dWni3xT8RPD1ms82teM/E0FnG6oQi2cUm0AnOTkj7uPWgTPXP2WvByeHfirtuEZb8eDrS7mPTMlzL5jbuMk42jnnitvw54Sm8aaj+03pLbXt7+88iJeMidYmZT0PfZ+Vdf4BWJf2oPHlvbRuINN8PafZMSDtVhggZ+hH5GrfwKZY/H/xvdiFUeIwSScAAQigEeTfCjxS6eP8A4N+Kpjj/AISjQZvDmoORybq1Yhd3H3jtUf8A6jX2fX5u+KPH/h/wlpviTRdM1OG4u/D/AI0j13w/JaEOksD8yKHGQABxj1Pfmv0J8I+IB4r8LaNrgtmtRqdrHdCBnDmMOobG4cHr1FAI2aKKKBn55/FA5+I3is/9RGb/ANCNcnXtmt/BXxj428f+Jbmz077LYSajMVu7w+WjKXPKjqw+gr1Pwh+y54d0kxT69dz6vcLyYR+6gz9B8x/E/hXV7SKR8WstxFerJxjZXer0PlDR9C1TxDdC10nT7m+uD/BbxlyPrjp+Ne2eEf2Wte1Pyp/EN9DpducFoIv3s+PT+6p/E19WaRomnaDbLa6ZY21lbL/yzt4gi/kKv96zlWfQ9fD5HShrVfM/uR+aOoQLa6heW6ElIZnjUnqQGIGfyqtVzV+dX1H/AK+ZP/QjVOug+VluwpD0NLRQI/S3Tv8AjwtP+uSf+girdVdP/wCPG1/65J/IVarhP0eOwUUUUDCiiigAooooAKKKKACiiigAooooAKKKKAAjPBrjvEWhGFnurdSY3G10Clse2ByR0AQbV7muxpGUOpVhlSMEHvQB86/EKW70XwJ4itrPbJpF9ERJbsw/cSblJaMjg/7SqNq9jnOfl4DJAx1NfZvxt0M2ngHxBdW2fJMCh1BxtG9cDP8AdHGEGBnk18Y4ycevFehg/gZ+d8Y/73T/AMP6s6Xxv428QeJYr/wH4W1zWLr4R2dwkOpa3BB511Em3MttE+cyxKRy2DtB5JA5+uPhB8PPDXhrwnpH9hLZSaTGgks0tHEkK5H+sL/8tJD3c/QYq58IPDvhXRvCdpH4cSJo1jEcvyBWjPUoU/hGcnHfrk5zVDUfhxqvg+/uNb+HE9vaPO5lu/D90SLC8Y9WTH+okP8AeUbT3HevPP0KHwo9OuLaG6heGeKOWJxhkkUMrD3Br4U+PGkWGh/E7VrPTbOGztFSFxDAgVAWjBJAHTJr678I/EzS/FF0+k3UM+jeJoFzPo2oAJOv+0h6Sp6OhI+nSvlD9ovn4t6z/wBc4P8A0Uta0fiPGz5L6un1v+jPPtL8P6lrUNxJYWrXAgxvVOWGc9B36Ulrquq6IJraC6ubUP8ALLDkqD7FTXffCrU4dG0vXb2TDOrRrGn95iGxXq/wv+Fln44jvNe8U2n2q1nJSBHJUue75GDgdBWkqlnZnBhcqdahGvSnaX/B8tTivhH8d7DwPDJY6ropeKdwz31q2ZPxQ8ED2Ir6Z8KfEjwv41iVtG1aCabHNu52TL9UbBrxbxd+ylbytJP4X1ZoTgkWl8Ny59BIOR+INeEeKPhz4q8DSeZq+k3NtGjYW7j+eLPqHXgfjg1PLCWzNvrePwf8ePMu/wDwf8z9BbyxtdRtXtry2huLeQYaKZAyt9QeK8l8Ufs4+DtcWWXT4JNHu2532pzHn3jPGPpivnrwj8f/ABp4VMUcl8NVsUGPIvvmOPaT7w/EmvePCn7TvhPWUEerpPo1z/01BliP0dRkfiBSUZwd4nR9cwGPj7Oulr0f+Z4T8SPgzrnw4spNUupra70ZJEjN1ESpUu21dyHkZJA4yMmvO7hrq3tb6zDzwi5haKaLLJ5ikdGHcH3r7Y8aeJvBXxC8D63oZ1u2e21O1eFZArYVyPlbOOobB/CuF+H/AIj8C/ED4XaDH4tht7nV7SE2VyFgkeaOSJihwyLuH3c9e9bRxTtaaPJxHClPmVXBVOVro9vv3/M/NqWMxsyMCGUlSO4Ner/Gvx9H8Q9N+HV80rSahZ6CtlekqR+9jlYZz3yMHj1rv/jt8BrXTJ5PE3gSy1zUNJjzNf21zp8qCFRyXVyo3Ke4xkdea8b8feEr3wva+HJZrW4hsNVs/ttnJLyJI3Ib5SOuMj35rlstWj6j2s1KEZR1e/VKy7nF0UorsvhXoejeIPHmj2niOZodAEvmXrorE+Wozt+XkZOBntmklfRG06kacXObsl1OMorV8T6XDoniPVtNt7mO5trS5kiinjOVkQMdrA+4xWVSKTTV0feP7FV3YeOPhb4m8Ga7Ywahp2n3gYQXMYdDHMpOOf8AaVj7ZpdR+H+uaX8QJtN+HEtzrnhLwpPDfXuiX1yNi3QyyW8Mjfe2Ah9jHAO0ZFeN/ska94gsNZ8U6N4WtHm13WbWGGC4kGbexAdt9xJ7KDwP4iQK/QHwP4NsfAnh230eyaSYqWluLqY5lupmOXlc92Y8/p2oGjxD4rftDWsXwc8TXelXFxo3jCAR2psbkeVdW0ruFJCsOcDcf5HvXwX8P9Ovdb+IXhiys7mWG/vNSgRbhHw6s0gywPr1NfS/7cviaz1XUtA0y0toC1tLKst4EG+R1Chow3dV3DI9T7V5J+y8LKL4z6Rq2pRTtp2lJLdSyxRM4g+UoruFBwoZxk9utAH2v8Mx/wAZD/Gc/wCxpY/8gGqvwAmt9W8Y/G51HmW03iRoyGGNwEYVhj6g14va/tE6B8HPjJ8Vp7zSr7V31jUYmhns5k2CJI+ByeeW7V237G/jnTPFGr/Ez7PDdQ3uo6q2r+XIoKJDISFG4fxA5yPpigD4h+IugJ4V8feJ9EjhMMOn6jPBFGTkqgc7Rn/dxX6H/sc+KX8SfBLTLeaTfPo08unnJydikMn/AI64H4V8kftj+H/7E+OWqzhcR6rbQXi8jkldjfTmM167+wBr67PGmgvJ8+6C9jj46YZHPr2SgD7YooooGFFFFABSN0paRvumgT2PzS1M51O+PrPJ/wChGqtWL/m/uz6zP/6Ear13H51L4mFKPvD60lKnLr9RQSj9LrAYs7b/AK5r/IVZqvZf8eluP+ma/wAqsVwn6PHYKKKKBhRRRQAUUUUAFFFFABRRRQAUUUUAFFFBOKAGySJEjSSMqIgLMzHAAHcmvJIv2nPhfPq9xp0HiVJjbyeVNdRW8r20bejTBdg+ucVJ8YtR/wCE2+CnxEh8K3pnu4bG5txNbk4MiLl1VujcZU475FedfsK32j6z+z1Y2cFrbiW1uri2v4ygPmOW3AsO+VZevpQBvfGnxNrPi/wjq6eGzAnhKxQSX+quNwvjuXEFv6rkgtJ04wM84+U0GZFHqQK91hk8Q2vgj4s6TaWMEfwzsbt10O6dmEhBkQvFEvQwrJvwfwHFeFxf61P94fzr0cH8DPzvjD/e6X+H9WfZT2E1pdpf2VxNZapFGga42ZaVeAolj/i3EbUj/hHORXY6H46iuZo9P1mNNP1NiUU790E7DG4Rv3IJwQe/AzW5daRBqNrFuzHMqfJKn3kJXBYe+OAe1cdrHhuSFHhltIJ7V9qKjLmLAJ8tG9I0AMjE/ebFecz9Cj8KOk8V+CND8aWkcGsWSzPC2+C4QmOe3f8AvRyLhkP0NfE3xm0u40X4iapYXWqXWqSQpEBd3e3zWXywVDEAAkDAz1OOa+ptL1XV/DyIlhJJqem4XZaXb/vgrELHskP8TncwVuAvcV8ufG7VI9a+JWrXsUcsaSLENkq4YERgH68jqODWtH4jxs9/3dev6Mm+DfhhvGXiNdHEyxxkiabLAERjqQO57fjX3TY2UGm2cFpaxiO3gQIiAcACvlr9mnwfovivR/Eo1awjuJIbiHyZwSksJ2tyki4ZT9DXuqeHfFfh4/8AEl8QLqlmvSy1tdzgei3CDd/32G+tKr8TOrKf90h8/wA2dxVTUzGun3TSorxrEzMrDIIAPUVzUfje4sBt1/w/qOnEcGeFPtUH13R5IH+8opPEPi7R73wX4hu9P1O0ufJ0+4kxHKCwxGx5HUfjWZ6J5d4b+AvhTxp8OvDV7PbzWOq3FhHI93aNtLswzllOVPX6+9eZeLv2ZvFmgiWfSWh1m0XJAhOycD3Q8E/Qmvq7wFamy8D+GrYjBh022Q/URLmugIyKtVJI8/EZXh6+rjZ90fnRp2teJvAWpEWl1qOj3qH5ojujz/vI3B/EV6h8Mv2g5PCE+qR6xpgurbU71r6WS0IRo5XVQ5CHggld2Mjkmvo/4leGNN1jRzeXWk6XqF5bbY4V1JtkeHdQw3/wnHQ+tfLl58IbebxR460t9UtNLuNEhh1K1hVmnhe0kU7sv9/KOjAnB4xWnPGXxI8x5fjcLrhp3Xb/AIGx9S+E/ir4R8bxKunavAbhxg2dwfLlGe21uv4ZFfG37eOt203jXwtoMEQRtMsHmYgYUea4AUD2Ef61ja54O1bw/dtFLFHciOJbkXGnyC4iEbEhX3pnAJB64rzP4rXV5rMWnahfXs11Nbj7KrzOXYR8kLk84Bz+dTKmkrpnRhc0nOqqGIhyyf8AWx5mK9s+Cfwr8T+KdH1jxJpGmtd2NtILRlQjzC2Ax2qeuAR055rxKvuH9i7xPq+m/D7XdP0/w3eapI+pmWGSNligBMahvMlY4GMDgAnnpUQm4SUkehjMLHF0JUJtpS7HyX8R9Gm0TxTcw3FrNayyKJGilQowboeD7iuSFfa37Yvw78QX/hPT/HeuXVj9tsJkszZWKHy4IJCcEyN8ztvwM4A54FfFWKJPmbZWFouhRjSbvypK/ofZX7Ct5oGht4nvdT1S2tNSv3itbaKd9m9EyzEE8ElmAx14r6x8Z+LHt8aNpEoOqXCbnmXkWkZ/jP8AtHnaO/XoK/OT4a2NzN4Umu47eV7aK5ZJJVQlUYgEAntXovh7xtrfhmTNhfOIi25oZB5kb9ByD9AOMdK6Y4bmgpRZ85X4n+q4ueHxFN2T0a3t6Pc4T9pnUopviX/ZVsf9F0Wyjt1G7Pztl2JPckvz717V+wJ4bYz+M/EDxny9sOnxsc4Y8u49D/BXyb4s12fxV4s1rWrrAlvrppWxkgDPQZ5xgCv0M/Yy8Of2H8E7C9ZWWXWbqa9YMCOM7F6+yA8etch9VF8yTPhf47yWTfGjxv8AY4o/siapIqqg2AbcBgB25Br2r9lv4g3Hws0OTUp/DBvvDfiHVWsWvLAmW+gljjDgNF/HEFYnK8g5zXgnxfOfix44P/UZu/8A0a1fVv7FPgmS98P23i2PUJC+n6hd2ZsZuYdkkcO6RP7snAGe44oH1Kn7fvh8Y8GeIUT5sz2Mjc9OHX/2evJ/2NPEb6F8cNOtN6rBrFrPZybmABO3zF/HKAY96+tf2xvDn9vfA7Vp1TdNpM8N8vBJADbWxj/Zc9e1fnV4F8TP4M8aaB4gj3Z0y9iuGCnBKqw3D8VyKAP2SoqppepWms6daajYzpPZXcSzQyxnKujDIIP0NFAy3RRRQAU1/ut9KdTZPuN9DQJ7H5n3hzd3B9ZG/mahqW5/4+Z/+ujfzNRV3I/OZbsKdH/rE+optPi5lj/3h/OgFufpbZj/AEWD/rmv8hViobXi2h/3B/Kpq4T9GjsFFFFAwooooAKKK8N+M3xt1b4aeI7LTLDTbG6intBcM9wXDAl2XAweny04xcnZGGIxEMPD2lR6HuVFfI//AA1l4j/6AOk/99Sf40D9rPxF/wBADSv++5P8av2Ujh/tnCfzfgz64or5I/4az8Rf9C/pX/fcn+NKP2tPEP8A0L+l/wDfySj2Ug/tnCfzfgz62orxP4MfGzU/ibr2oadfaXZ2kdrbeeHgdiSdwXBz9a9sqGmnZnfQrwrw9pTegVz3jfww/jLwxqOiJqt9pf22IxG6sXCSqCOzYOPw5roaKRsePfDoD4R/BWx0rxjZPZp4ftXtbiS3jNwlyilv3q7AT84OSCAck5ryn9g7wdq/h7wp4y1W7srix0XXNU8/TILhCjmJQw37T0BBUf8AAa+t6QAAYHAoA86+OEaQ/CbxIkaKiLAgCqMAfvU7V8Nwj97H7sP519y/HU4+FPiX3hT/ANGpXw3B/rov99f516GD+Bn53xf/AL5S/wAP6s/SaHiGP/dH8qcyq6lWAKkYIIyDTYf9TH/uin155+hx2Rhal4Zguw8lu5t523HcvIDMoUvj+8EBA9M18S/G+3ktfibrUEiRx+UIkRI/uogjUKP++cfjX3uelfCn7QX/ACVvX/8Atj/6KStaPxHi59/u8fX9Gdl+zjqWuabZa8+kLaTRGeBXguQVErsdqqrj7p5YnIIwK96tPivpsQRdcsrzR2bGJZk823bJIBEqZABKnG7afavI/wBljTI9R0HxIGZkeK7jaN1/hYxMuffG417Td+Frm2RzaFJQikxp0I2w+XGv4FmapqfEzryr/dIf11Z02narY6vbi40+8t7uA9JIJA6/mKp6v4V0PXkkTUtJsrsSAqxlhUkg9RnrXmOreANMinmni0+Wxu41lMdzYO9tIdiRxx/MhGcsS2DnNK0Hi/R5ZF0nxhNcRI8ipBq9slwCFmSJQXXa3JZjnJ6VB6B6DF4Ls7NETTr3U7CNAAscF0xQAdgr7hj8KmXSNYh4i8QSOO32i2jb9V21wcPjrx9YuI7nw5ouqqWCB7G/a3ZsytEPkkQjkoT97gEVLD8Z540Rr7wL4khDBW3W6Q3AwVLA/K+fuqx6dqAOzvNJ1i+tZbS7uNKvLWUbZIp7Jirj0I3kH8qz7Twe9jKZbWw8OQTFDGZI9PIYqeq53dPasIfHfw6n/HzpXia1IGSJtGn44B6gEdGX8xTh8ePCRbaI9dLZxtGjXROc4xwnqCPwoA6Oz8M6hZCUWt1pdkJv9Z9k0xU3/XLHP418iftr/Du38PaFoGvW5Vprq+eC6ZIkhDEoSnyoAD91ufpX0bD+0L4WvJbqGw0/xHez2uPNjh0mUFMruGdwGMqQfoa+Wv2zvipJ4sh8M+H00bVNKihklvZF1BURpSCY1wqscYIfrjr0oJlFPVrY+SvrXvfgaXxF8PrDTpLeXUNIvnQTjG6MurfMCQeGGMeorwVGVXRnGUBBI9RX6WweEovFOnaXN4hv77WIlijeCznKwwRZAAUJGB3ymST95D3q4SUXqceOwssTTUYS5Wnc8X8VfH3W/Efw28S+G/EVha6mt7ZPHHcqojeN8ZViB8pwQDwAeK+Oh0FffXxA/Z7sm8La5q2jSXFmLWyluPLm+aN1VCxxn5gSuD1OCGHpXwIDlQfUUT5X8JGAhiacXDEO/Zn1l+xINQ1XU/FejIYjpohiuX3k5V9xXgdCCBz34BHSvo/4reA/B/gnwR4g8YrpcEeqaZYzSwyqCqtOy7UYoCFJ3EEcdea+Hv2ffiPrPw51/U7nRnh33UCLLHNGHSRVbOPUcnsa9y+Nfx4/4WR8HtU0KWyGmam8kUsrA+ZBNGjbioP3lYkLjg/WmlJK8QrV8LKqqFdJtWtdfkfHNrdC2WTfCk7SxOg8wkbGYYD59R71+vnw00OLw38PPC+kw7fLs9OgjyoABOwZPHqcn8a/OL9mz4Jv8ZPFsrXN2lvo2iNDPdqU3NOC3ESjpztOSeg7c1+okUawxpGiqiIAqqowAOwFZnoI/Hf4j6iNX+IPiu/WMxrdapdShCclcytxmvvX9huxltfgxNNJt2Xeq3EkeDk4ConP4qa/PjxOd3ibWz630/8A6Mav0a/YtH/FiNM9726/9GGgOp6/8QPD0fivwP4i0SRN41CxmgAA53FDt/XFfjo0bRMUcYdDtYehHWv2vr4L/bP+DPh3wZDpni/w9p5sn1O8aC+iibEO8qWVgn8JJDZxx7UAztP2F/iJq+t6RrnhHUJWuLDREilsnYcxI7MDHn0yMj6mitX9h34eLoXgi+8YverNL4hYRpCgIEMcLsvzE9WLZ6cAYooGfVdFFFABTJf9W/0NPqOc4hk/3T/KgT2PzPuDm4m/32/nUdST/wCvl/32/nUddyPzl7hUkH+vi/3x/Oo6kt+biH/fX+dALc/S63/1MX+6P5VNUUH+pj/3R/Kpa4T9GWwUUUUDCiiigAr49/asOfH2mD001f8A0Y9fYVfHP7VJz8QdPHppsf8A6MetaXxHkZ3/ALq/VHhtFFFdJ8cFFFFAHv8A+yaP+Kx10/8AUPH/AKMWvrmvkj9kz/kb9f8A+vBf/Rgr63rlq/EfZ5N/ukfVhRRRWZ6oUUUUAecfHk4+FHiP/rnH/wCjUr4etfmuYB2Mij9RX25+0AcfCXxF7pF/6NSvh3Sxu1OyU9DPGCPX5hXbhqnLFnw/EuD9vi4STtZL82fpXF/qk/3RT6QDAAHSlriPt1sIelfCf7QBz8WvEP1h/wDRSV92npXwh8fDn4teIv8Aei/9FJWtH4jxc+/gR9f0Z7H+yQP+JD4mP/T3F/6Aa+jK+df2SB/xT3iQ/wDT5H/6BX0VU1PiZ15V/ukP66sQgMMEZHvVObSbOc5e3TPHI46OH7f7QzV2ioPQMT/hGLRZI3jaRCjIwGc/dkMn6ljVFPB/lCBUucrGI1+ZeSFWRT+Yk/SupooA4x/B92bcx/aI2JjKE8jk24iJ/wC+kQ06XwxfmSSWOSIOWeRfmI+bfHIv/j6v+DV2NFAHhb6BJ4d+M9pZSSItp4o059no0tq5G0+5t5yP+2dfJX7Z2i3GkfFmzMxLLcaTAwk7Oyl1Yj8Rk+5r7V+OiHStE0HxfEp83wrq1vfSFev2dz5M4+nlyE/8Br42/bivJLr4xWkZlLwRaRAYhngBnkJx9aAZ80t90/Sv16+Edlbf8Ky8Gz+Shlk0i0ZnIySTCnP/AI6PyFfkNjIINfrf8CNRfVfg34HuZIhEx0qBNgz0VdoP4hc/jQJHeXlpFe2dxazLugnjaN1PdSMEfka/GHV7T+z9V1CzCsgtriSIK4ww2sRg+/FftLX5d/tYeCYPBPxn1hbQoLXV1XU0jU8xmQkOD/wNWP0IoBlP9mPwda+O/ita6Nfsy2UlncSSlGKvhV42n13EHnjANen/ALS/wZf4V+Ek1CDWFvLG+uktUSSMpMpILdsqRhfb6VwX7IFncXPx68PSQwySRW8dzJMyAkRp5LKCx7DcVH1Ir179v3xCGuPBvh9X5jWe/lXnuQie3Z6pSaVkc1TCUas1UnHVdTuP2FfCa6Z8NdU1+SELcavfsqSEHJhiAUD6bi/T+ld18Zvih4y8B+MfDVj4c8LXviHTb+0uXurexgZpVkXAjIkwQuMk4I5xXRfs9eHX8L/Bjwbp8sQin+wrPKoBB3SEyHIPf5ua9MqTpR+LWsQXttq1/FqUUsOoJO4uI5hh0k3HcGHY5zmv0T/Y7bxFovgV/CuueEdV0hLFmuob+8TZHdCVy21QRnIGPXrXwl8X/m+KnjjH/QZvP/RzV+t2gD/iRaX/ANesX/oAoA0a8b/an8MDxR8DfFMQRnnsYlv4goJIaJgx4H+zur2SqOs6ZDrWkX+m3Khre9ge3kBGcq6lT+hoGfLf7BniZtQ8A+INBkfJ0q/EsYJ/glXPHP8AeRvzory39j25u/AXx28QeDb4eVLcW89o8bZGZYH3DHH90Oe3BooA/QSiiigAqK5/1Ev+4f5VLUN1/wAe03+438qBS2PzQm/10v8AvH+dMp83M0n+8f50yu5H5y9wqW1GbqAf9NF/mKiqaz/4/Lb/AK6p/MUBHdH6XxcIo9hT6agwBTq4T9GWwUUUUDCiijNABXxt+1Oc/Ea0HppsX/ob19kZr40/akOfiTAPTTov/Q3rWj8R5Gd/7q/VHidFFFdJ8cFFFFAH0H+yWP8Aiq/EB/6cU/8ARgr61r5L/ZL/AORo8RH/AKck/wDRlfWma5avxH2eTf7pH5/mFFGaM1meqFFGaM0AeYftCHHwk1//ALY/+jUr4i0jnV9P/wCviP8A9CFfbX7RBx8JNc92gH/kZK+JtG51nTR/08xf+hiumj8LPlM7/wB6j6L82fpWKKKM1zH1YHpXwb8eTn4teJP+ukf/AKKSvvI9K+C/jsc/FnxL/wBdY/8A0WlbUfiPEz7+BH1/Rntf7JP/ACLniP8A6/U/9F19E188/slf8iz4iP8A0+p/6LFfQ1RU+JnZlf8AukPT9QoooqDvCiiigAooooAyfFGgweKPDer6JdAG31G1ltnz6OpXP61+W3x21u517XfDk17n+0LPRIdOvM9ftFvJLDJ+qZ/Gv1fr80P2uvD0Hhv4n6lbhWVr2Y6nb4HymOZR5g+olRz/AMDNAM8h+H/gu++IfjLRvDWnqfP1GdY2cDPlx9Xc+yqCa/X/AEbSrbQtIsNLs0CWljAlvEoGMIihR+gr8nvgZ4xvvA3xW8MapYgM0l3HaSxt0kilYIw/Js/UV+t/SgSA1+an7ZvhXUtC+MNzql9dpcW2uQrPaAMS0UaKqFCMcYIOMZ61+ldfMv7YXwag8b+E5vGcV9Lb6l4ZspXEGzelxFkMV9VI5wefegGfOX7FWq2ul/GKU3epLZxzaXOojb7s5G1ipPbAUt/wGsv49eKbD4z/AB9gXw9dC+0y5az0y1mjjOJASNxAOCfmdvSvDrO8nsbmG6tZnhuImDxyRthlPqDXrv7Lfh0+Jvjr4WRkDxWUr38vyZAEalgT6fNt59cUCP1IsrSOws7e1hUJDBGsaKowFVQAB+Qqc0ZozQUfjh8Qb4al478UXoRoxcancybGfcRmVuCe9fr/AKB/yAtM/wCvaL/0AV+OviJXm8VavGilnk1CZVUdSTKwAr9jdHieDSNPikUpIlvGrKeoIUZFAkXaCM0UUDPzE8TeLLz4e/tXan4i1mSRm03XWlnMKZZrc8YVc/8APJhgZor0b9qX4XXOtftGeGIrG3eQeLI4FYR8fNG2yQ56DEYU0UCPvWiiigYVDd8Ws/8AuN/Kpqr3xxZ3B/6Zt/KgUtj80ZP9a/8AvH+dNpz/AH2+p/nTa7kfnLCnxSGKWOQDJRg2PXBzTKKBbH0QP2tdZx/yLen/APgQ/wDhS/8ADW2sf9C1Yf8AgQ/+FfO1FR7OPY9D+1cX/P8AkfRX/DW2r9/DVh/4EP8A4Uf8Nbav/wBCzY/+BL/4V860Ueyj2D+1cX/P+R9Ff8Nbat/0LNj/AOBL/wCFL/w1vquP+RYsv/Alv/ia+dKKPZR7D/tXF/z/AIL/ACPoz/hrfVP+hYs//Alv/ia8j+JXj6f4keIl1m4so7N1t0t/KjcuMKWOckD+9XH0U4wjHVGNbH4ivHkqSuvkFFFFUcgUUUUAehfCX4oH4XanqN6NL/tD7ZCsOzz/ACtuGznO05r1j/hro/8AQoj/AMD/AP7XXnXwN+GmlfEvVdXtNVnu4o7OBJUNs6qSS2Ocg8V7b/wyp4O/6COtf9/o/wD4ispuF9T3cDDHuinQklH5f5HL/wDDXR/6FEf+B/8A9ro/4a5P/Qoj/wAD/wD7XXTn9lTwd/0Eta/7/R//ABFH/DKfg/8A6CWtf9/Y/wD4iovTOv2ea/zL8P8AI5j/AIa5P/Qoj/wP/wDtdH/DXP8A1KP/AJP/AP2uum/4ZS8H/wDQT1r/AL+x/wDxFH/DKXhD/oJ61/39j/8AiKL0w9nmv8y/D/I8v+Iv7Q//AAn3hK90H/hHfsf2loz5/wBr37drhvu7B6Y614tZXH2O9tbnbu8iVJNucZ2sDj9K+i/iZ+zto3hTwfe6pok2s3uowtGI4DtkDBnAPyqgJwCTXh+n+CtcudQtIJ9E1WOGWZI3f7JINqlgCclfQ1rBxtoeRjqeK9qvb6y0/rQ95/4a69fCP/k//wDa6cP2uV7+Em/C+/8AsK6H/hlHwkR/yFda/wC/kf8A8RSH9lDwp21bWv8AvuP/AOIrO9M9fkzX+Zfh/kYP/DXMJHPhOT/wNH/xFeB+PPFC+NPFup66tsbVb11cQl9xTCheuBnpX0x/wyh4V/6C+s/99x//ABFfNfxD8N23hDxprGiWkssttZShEebG9htB5wAO9XT5L+6efmEcaqa+stWv5b/I7f4QfGqD4X6VqNjNo8t+by4EwdJwm3CgYwQfSvR/+GuLH/oVrof9va//ABNcN8FfgxpHxM0TUr7Ub+9tpLW5EKrb7cEbAcnIPPNemH9k7wz/ANBvVx/37/8AiamXs76nThFmPsY+xa5emxnr+1xp2OfC95+Fyn+FL/w1xpn/AELF9/4Ep/hV7/hk7w1/0HNW/wDIf/xNIf2TfDnbXdV/KP8A+Jqf3Z0WzXuvwKf/AA1xpf8A0LF9/wCBKf4Uf8NcaX/0LF//AOBKf4Va/wCGTPDv/Qe1X/vmP/4mg/smeH/+g/qn/fEf+FH7sLZr5fgVf+GuNL/6Fi//APAlP8KP+GuNL/6Fi/8A/AlP8Ksf8Ml6Bj/kYNU/74j/AMKQ/sl6D/0MOp/9+4/8KP3YWzXy/Ag/4a40v/oWL/8A8CU/wr5s/aq+KGifE9vDt3baRd2Gq2fmRF5JVdZITg4OBnIbp9TX0yf2StD/AOhj1L/v1H/hXzB+1R8F7j4a6pod1Ym9vtFuYCjXkkY2pNuPyHb0yuDz159KUuS2h0YVZh7Re3ty/I8h+F95Z6b8QvDl/qFs91Z2V2ly8CEAybPmA546gV97j9rjS+/hi+/8CE/wr5J/Z2+COtfErxpC09te6foNnGZrjUGhwOVOxV3YDFj6ZwOa+uf+GSdH/wChl1H/AL8x0oclveLxn13nX1a1reW43/hrfSP+hZv/APv+lD/tZ6LIjI/hm/ZWGCDLGQRS/wDDJOj/APQy6h/34jo/4ZJ0f/oZdQ/78JVfujk/4VvL8DyjUNb+Buq3097dfCmTz52Lv5VyY1LHrhVcAfgKr/D3xP8ADv4Z/EbU/Fug+H9Vt7a7sxaw6buRktiSC7K7MWOdo4PTJr1//hkjSP8AoZtQ/wC/CUn/AAyTpP8A0M1//wCA6Ufugvm3l+BOP2tNAPXw/qn/AH3H/jQ/7Wnh8IxXQNU3AEjLR4/nUB/ZI0rt4mv/APwHT/Gq97+ybpcFncSDxNfEpGzYNunOAT60fuxp5r1t+B+fMN2b7xXFdsoVrjUBKVHQFpc4/Wv2br8W9JGdb0//AK+o/wD0MV+0lYnuoKKKKBld7G1ku47t7eFrqJSiTMgLopxkBuoBwPyoqxRQAUUUUAFVdSOLC6P/AEyf/wBBNWqZNEs8TxuMo6lSPY0CaurH5lt95vc0lfc//DPHw6/6ATf+Bc3/AMVR/wAM7/Dr/oBN/wCBc3/xddPtonybyLEd1+P+R8MUV9zH9nb4dH/mBv8A+Bc3/wAVTf8AhnT4d/8AQEk/8C5v/iqPbIX9g4juvx/yPhuivuM/s5/Ds/8AMGl/8C5f/iqT/hnH4ef9Aib/AMC5f/iqPbRD+wcR3X3v/I+HaK+4P+GcPh5/0CZ//AuX/wCKpD+zf8PT/wAwu4/8C5P8aPbRD+wsT3X3v/I+IKK+3j+zb8PT/wAwy5/8C5P8aT/hmz4e/wDQNuv/AALk/wAaPbRD+wsT3X3/APAPiKivtw/s1/D4/wDMPu//AALk/wAab/wzT8Pv+fC8/wDAx/8AGj20Q/sLE919/wDwD4lor7a/4Zo+H/8Az43v/gW9If2Z/h+f+XO+/wDAx6PbRD+wsT3X3/8AAPiaivtf/hmbwB/z6X//AIGNR/wzJ4A/59b/AP8AAxqPbRF/YWJ7r+vkfMPwz+J998ML3ULqxsba7e9jWJlnZgFAOeMV6T/w1n4h/wChf0v/AL+Sf416oP2ZPAAP/HrqB/7fGpf+GZvAH/Ppf/8AgY9S5werR2UcDmNGPJTmkv68jyr/AIaz8Qd/D+l/9/ZP8aX/AIaz1/8A6F7TP+/sleqf8My+AP8An1v/APwMaj/hmXwB/wA+t/8A+BjUr0+xr9XzT/n4v6+R5X/w1nr3/QvaZ/39kpf+GtNe/wChd0z/AL+yV6l/wzJ4A/59tQ/8DGo/4Zk8Af8APtqH/gW1F6fYX1fNP+fi/r5Hlv8Aw1nruf8AkXdN/wC/0lL/AMNaa5/0Lunf9/pK9Q/4Zj8Af8++o/8AgY1H/DMfgH/n31H/AMDGp81PsH1fNP8An4v6+R5eP2tNcH/Muad/3+kpw/a11rv4b0//AL/v/hXpv/DMXgH/AJ4aj/4GNQf2YvAX/PHUh/29n/Cjmp9g9hmn/Pxf18jzP/hrXWO/huw/8CH/AMK8T8Y+JZfGPibUtcmt0t5b6QSGJGLBflAwCfpX1qf2YPAX/PPU/wDwLP8AhXyv8SNAs/C3jnW9H08SCzsp/Lj8xtzY2g8nv1q4OF/dPPzGnjIU19Ykmr/j9x1Xwt+NF58NNLvdPttJgvVup/PMksrIVO0LjAHtXej9rDVf+hasv/Ah/wDCuS+EHwWh+J2iX+oSaxJYNa3PkbFtxJu+UNnO4Y616J/wyZa/9DXN/wCAQ/8Ai60vQXx7/M4oxz2UE8LpDprH9TJ/4aw1T/oWrP8A8CX/AMKX/hrHU+/hm0/8Cm/+JrYH7J1jjnxPdZ9rRf8A4ql/4ZOsP+hnuv8AwEX/AOKovhv6uP2XEvf/ANIMY/tYaljjwzaZ/wCvpv8A4mmf8NYat/0Ldj/4EP8A4Vuf8MnWH/Qz3X/gIv8A8VR/wydYf9DPdf8AgIv/AMVRfDf1cPZcS/zf+kGH/wANYar/ANC3Zf8AgQ/+FO/4ax1T/oWrL/wJb/Ctn/hk6w/6Ge6/8BV/+Kp6fsn6Zj5vEt6T7WyD+tF8N/Vw9lxL/N+MDD/4ax1T/oWrL/wJb/4mmS/tV6hOu2TwtYOvo87Ef+g10P8AwyfpX/QyX3/fhP8AGj/hk/Sv+hkvv+/Cf40Xw3b8w9lxJ/N+MDm1/au1lFCr4c04KOABM+BS/wDDV+tf9C7p3/f566P/AIZP0r/oZL7/AL8J/jR/wyfpX/QyX3/fhP8AGi+G/q4ex4k/m/GJzn/DV+tf9C7p3/f56P8Ahq/Wv+hd07/v89dKv7J+kD73iPUD9IUFO/4ZQ0X/AKGLUf8Av1HRzYbt+Y/Y8SfzfjE5j/hq/Wv+hd0//v8APUbftWa/k7dA0wD3kkP9a6v/AIZQ0X/oYtR/79R0f8MoaL/0MWo/9+o6ObDdvzD2HEn8/wCMTk/+GrPEH/QB0v8A77k/xqO4/am1+4glhbQtMAkUoSHkyMjHrXYf8MoaL/0MWo/9+o6UfsoaJnnxDqWPaKP/AAo5sN2D2HEn8/4xPifTPhpAdZ0qK0nvLm+nvIo4LeNFLSOXGB9BySewBNfq5XlPw9+A3h74f64+tRT3OoakIzFBLc7cW6n72wAdW4BJ5wMeterVzVXFv3FZH0+VUcVSof7ZPmm/TTy0Ciiisj0wooooAKKK5H4lfEnw98KfCd54k8SXgtrC3GFVeZJ5D92NF/iY46fUnABNAHXUmfrX5Q/Fv9tr4i/EjUJbTw5dz+GNEZisNtpzn7TIDwN8w+bJ9FwPrXj914j+J/hieHU7vVfF+mSuwMdzPPcxFj14ZiM0Aft/RXw1+yR+1b4j8Q6Xr1l8RGluNG0K1N2/iiRAq26j/llOw4Zm/hI+YnjBzmvKfjd+3l4s8WX9zpvgB5PDugqxVbzAN5cD+9k5EQPovPv2oA/TrNLX4g6hr3xQSP8At2/1PxikbneNQnmuQpz3EhOP1r6T/Ze/bM8TaV4p0zwp4/1STVtA1GVbaPUbtt1xZSMQFLSdXjJwDuyRnOeMUAfpXRX5yft5fGbxLovxV0zw54a8R6rpMOmaaj3K6feSQB5ZWLfNsIzhAmM+pr07/gn/APF/VvG/h/xP4a8Raveanq2mzpeQT3s7SytBINpXcxJIVl/8foA+zaK/NX9ub40+KNM+MqeH/DXibVtKtdIsIknj0+8khDzSZkJYIRkhWQc1yniP9rbxl4X+GfhvwN4c1++fWRa/aNZ1+5maa6aaVi/kxu5JUIrKpbrkEDGOQD9Vc0V+J91/wuCLTT4suZPG6accSf2tK90I+ejeYeMe+cV7/wDBz9pD4wJ8LvHtxqbX2s+HdP0uSK31y4YiezvJAI4VWXrKdzg45ZcZyB1AP0xor8SZPjT8WoULyePfGKIP4m1S5A/9CpsPxu+K1wSIfiB4vkI6hNVuDj8moA/biivxIl+NnxXt1Bm8f+MI89N+q3Az+bUsXxq+LE6l4vH3jB16ZTVLgj9GoA/baivyG+Fn7Y3xN+H2v2s+qa/f+ItFDhbrT9TmMrOnfZI2WRh25x6g16p+2j+0JrsvjfwxaeB/FWraZpf9iw3ztp948HmtcfOu7YRkiMJ16bjQB+ktFeLfsoxa6fgV4Wv/ABJq2oapq2qRvfSXF/O80myRyY13MScbAvHvXn/7eHxO1X4f/DHSLTQdVu9M1fWNSVVuLOdopRDGpZ8MpBGSYwfrQB9U0V+JMXxq+LM67ovH3jGRc4ymqXBGf++qjl+OHxVhfZL8QvFyN6NqtwD/AOhUAft1RX4lL8Z/i26hl8eeMmU8gjU7kg/+PV9reF/2kv8AhQf7O/he68V6hqPiX4geII5dQt7G9u3klWJ3IjaR2yUj2quB1JJx3IAPt/OKM1+N3jH9ov4v/GHVZYv7e1cJKSY9K0PfFGq+myP5mx6sSa5vSPip8UPhnrCS2/iTxJpV/Hhjb3U0uGGf4opOGH1FAH7a0V8x/Aj9qyD4mfCLxP4g1qKC08SeE7OS41CGLiOZQjMkqA9AxUgjsR6EV+cp+OvxVvriRo/iB4sMjsW2RapPgd+AG4FAH7at0NfAfxoyfip4pOD/AMffp/srXyrpP7Rnxe8M38dxF498RmZCG8u9u3nRvqkuQR+Ffpp+y/8AGyH49fD46tfWNrb+INOm+yajFEvyM+0FZFB5CsO3YgjtVwnyu5wZhgvrcFDmtZ3Kf7Jwx4M1rg86j/7SSvfuBXy5+3R8Qr34efCG0ttBv7jS9X1nUo4UnspDDKsaAu5DKQR91AfZq+U/2R/2hfFOnfGrRdP8U+KdX1PRtczpzJqN7JMkUr48pwHJAO8KufRjUyd3c6MLQ9hSjSvex+qGKTvWb4g1/TfC2h3+taxeRWWl2ETTXFxK2FjQdT/9bueK/KD48ftbeMviT41nuvDWuav4f8OWmYbG1srp4HkTP+sl2EZZuuOijgdyUbn640celfD3gr44ar8Df2StJ8XeIdQvNd8XeJ7qd9Mj1O5eYnJ2qSWJPlqqbyB1LAcbs18XeK/il8TfiTc33iLVtd1+9gt2Bmkt3kS1tNx+UBUwkYzwOmfegD9ssCjAr4M/YF+OnibxRrWreA/EepXWqW8Fmb6wuLuQySwhXVXj3nkqd4Iz0wfWum/b7+KHiPwfpfhDQ/Cuq6ppl/ezzXlxNpszxSeUgCKpZCDgs5OP9kUAfZ2KMV+I83xu+K1uwEvxA8Xxk8gPqtwM/m1Pj+NHxalQPH498Yuh6MuqXJB/8eoA/bXFGK+ZP2G5PFWqfCO51/xZrer6peapqEht21O5kmaOGMBAF3k4BcP0ryz9r79r/V/COv3fgHwDdC0vbTC6nqygNJG5GfJizwCARubqCcDGCaAPu3NGBX4oXLfGG70x/Fk8njeTTf8AWNqzvdeXjru8zpj3zivrf9h/4yfFzxn4il0bVvtfiLwbBGRcapfNmSxfGUAlPMmemw5ODngDkA++cUYoooAMUYr80f2v/wBqvW9W8dnwx4C8RX+maPoLNFcXmm3LQteXPR/mQglExtHYncfSvSf+CfXxX8ReM7vxronibX9S1i4hjt7y2fULp52RcsjgFicDJSgD7lxRRVDW9ZsfDuj3+ralcJbafYQPcXEz9I40BLE/gKAL9Ga/Jr4zftb/ABC+MHiObTPC97qWj+H3kMVlp2mMy3FyueDIyfMzH+6OB0wetea3WtfF74WX9peX2oeMfD1zN88L3clxCJe/8fDe4OfegD9r6K8M/ZU8c/EHx/8ADSHU/iDpX2a6LgWV8yiJ7+HHEjRD7pzxngMOQPUoA9zr8oP22/i3d/Eb4v3fhu1lZtD8MObG3hQ5Elx/y1kx3O75B7L7mv1fr8QvG01x4Y+N2v3OpQs9xp3iKaeaJxy+y4LEfjj9aAP0t/Zh/Ze0H4ReGNO1bV9PgvPHF3Es1xdzIHNmWGfKiz93b0LDknPOMCvdvFnhPR/G/h++0HXrGK+0q+jMU0MoyCCOoPZh1BHIPNR+EPGWh+O/D9lrugajBe6bdxiRJInB25GdrD+Fh0IPIrktR+Pnw+0z4gaV4Fl8SWj+ItRZo0hhYOkTgcJI44Rm6BTyT9RQB8Iftq+ItI8DDQ/gt4KtItM8OaPCl9fwwHm4uH+55jdXIXDEnOS49BXsf7GP7LmiaV4T0z4geLdOh1DXNUQXOn29zGHjsoD9x9p4MjD5snoCMc5r5R/bMs7u1/aR8am7Vh50kEsRb+KMwR7SPbgj8K/TD9nf4iaD8QvhN4WudHvLd5rTT4LW7tEceZbSxoEZWXqORkeoINAHpt3Y21/ZzWd3bxXFpMhjkhlQMjqRgqVPBGO1fij8ePDGneCPjN4y0LRAY9N0/UpEtkBz5SnDBAf9knH4V+p3x5/aQ8KfBLw/cyXF9b3viV0Is9IhkDSO+ODIB9xAeST16DJr8r/DWi6v8TPEfifxVqhea302G41zV7wj5c8sq/WSQqgHufSgCn8WPFl58R/iVrWtOHmuLyZIkC/MzBEWNcY65CD869A/Y7+IA+H/AMefDsk0oj0/WC2lXJY4GJcBCfpIENL+x54RHjb9oTwuk6CS205pNTnDDIxEpK5/4GUrivjj4Gk+F/xe8V+Ho1eKKxvme1I4Pkv88RB/3WXn2oAv+Nry4+M/7QOrPbEvJ4j1/wCzW564jaURx/km38q5fxPpOo/Dv4i6hYajZr/aGiakweC6QskhjkyNwP3kYAH3Br1/9iHwl/wlX7Qeh3EybrbRIZtTkJ6Aqu1Cf+Bup/Cvu3x78J/g3+1M+pyRX1tda9pEhsp9U0ecC4hZeiPwVkUZ4JBHBAPWgDy/4dft/wDgrxhFFoXj3QG0MXafZ5bhCLixYMMEOMbkUg46MPU19deFdD0DQvDun6f4bs7K20KOIG1is1HklDyGXHBz1z3zmvyL/aU/Z/j/AGf/ABRp2lw+IoNZh1GFriNfL8ueBQ2P3iZI57EHnB4GK+7f2BdT1fUvgFCupvJJb2mpXFvYNIc4gAQ4HsHZwPpjtQBxv/BRjxXHpfw78M+GYSizaxqDXMigDJigX+W6RfyrP/4JweDFtvCPi/xVPCC2oXsdhC7D+CJdzY9i0oH/AAGvFf8AgoJ4v/t342w6NHJug0DTooCAeBLJmVv0ZB+Ffc/7KPhD/hDPgB4LsmjMdxd2n9oTAjB3TkyDP0VlH4UAfGP/AAUV8VJqXxQ0Hw5AR5Wi6d5sirjiWZiT/wCOIn519T/se+HrHwD+zl4eu9UltrQaiJdVuJrllRVWRjsJZuAPLVK/OX4+eJZ/iT8ePGF/ZpLdNd6m1paRxqXaRYyIowoHUkIMAetc18RLnxcNeeHxbZ6jpt75MSx2F5E8HlQogSJVjbGFCqAOO1AHZftN+KPD/j745eI9T8HwRNpc8scMclsmFu5VUK0qgf3mBwe/XvXC39pqHibxnZaMWMt80ltpEQ64KBYFA/75FfV/7LH7OenyeBNQ+Mmq3dtqMun2d3caTpkWWEVzCr4ebI+8GUFVHHQk9BXgH7N15pUHx78CXniG5jhsE1NJXmmYBRJyYyxPQeZt5NAH7J+HdGg8O6BpWj2oAttOtYrWMD+6ihR+gr82f+Civi7+1virofhyN8xaHpwd1z0lnbcf/HFj/Ov0Y8YeNtA8BeH7rXfEWqW+n6ZbIXaaZwN3so6sx7Acmvx68X6nqf7R/wAery50u2k+1+J9TWG0hbkxQ8Im702xqCewwaAP0l/Yz8GJ4V/Z78LiaFRdasJNTl3LyfNYlP8AyGEr85v2jfEEnxH/AGh/Fsll+9EupjTbRV6ERYhXH1K5/Gv1k8R6hZfCj4U6ldREJZ+GtGYwg8ZEMOEH1JUD8a/KX9ljwvJ4/wD2h/CEdwvnLFetqdyW5yIgZcn6sFH40Afqzbw6V8JfhbCblY003wvpA8wgAZSCLn8Tt/WvyW0iy8SftTfHRIZ59up+IbwvJKcslnbqCTgf3UjXAHfA9a/UT9p+0u779n34gw2SsZ/7Md8L1KKQz/8Ajoavze/Yx8eaN8P/AI6aZe69cRWthfW01h9qmOEgeQDaxPYEqFz23UAfqH8L/hF4T+EOgQ6R4Y0uG2VVAmuioNxct3aR+rH26DsBXkf7cfgnRPEPwJ1zW762i/tbQTDPZXW0CRC0qIyZ67WDnj1APavoubU7KCxa+lvLeOyCbzcPIojC4zndnGPevzl/ba/ae0nx9bR/D/wbeLeaRBOs+pahEf3VxIn3Yoz/ABKp+Yt0JAx0zQB8seDPGl54U0TxrZW7lY9f0sadIAccGeJycf7qMP8AgVfUv/BOPwgt/wCOfFniieINDpdilpGzjgSTPk499sR/76r5X8UeELvwj4Z8M3Goo0N/r8L6jHA4wyWu4pE5H+2VkI9gp71vaL4V+KOteC7LT9A8KeJbjw9NcvfLPYWE7R3MhAj3F1XDBQpA9Mt60AfVP/BRDxz4O1W18N+GtNksrzxRZXLXFxNbFWa1hKEeWzDuzEHb2257iuz/AOCcXha+0z4e+KdfuEZLTWL+OK2BH3xCrBmHtucj6qa+fvg1+w5498earb3fi6yn8MeHVYNM10ALuZe6pH1Un+8+Meh6V+nvhfwxpfgzw9pugaLaJaaVp0KwW8KdFUfzJ6k9ySaAPzs/4KOeLv7Q+InhjwzHJmPSNPa5kUdBJO/89sa/nXx/cWOp+G72wmmims7lo4r22cjBKMA8ci+x4Ir1D9oXxBN8Tv2hPFk9mxmNzqv9nWgH8SxkQpj2O3P419F/t3/BaHwz4P8Ah/4l0yAeTo1nF4fu2UfwImYWP4hxn3FAHj/7Q37U+ufHTTtC8P2kM1lo1vBA13boctfXu0bmIHVA2Qq/iecY8AbSL1dXOlPbyLqAm+zGBh8wk3bdpHrnivtX9l/9nuLwX4N1L42+OrQKmlWM2oaNp9wv9xCy3Dqe5IGwH13elfPP7PmmN4t+OmgXmoIbiK0uZdavM871gVp2z9SgH40Ae7ft3eH7Lwl4d+EPhq21K2aXQtMe0k09ZB5iALEBKV7BijDPtWT+yZ8VvA1z4R134O/EiOG28O65P9rivTKYEdxtYxSyKQQMxqVOexB6ivDdKGpftBfGm0j1zWEtb/xRqQWW9n5WAMeFAz0AAVRx2FWv2gfgrcfAzx7N4fbU7fUrKVPPtLiN18wxk4xKgOUcY+h6igD1G/8Aj74I+E/ji4k+BfhOLTUcfYp9b1GaW4kuIS6lvKidiqAlR8zZJ9BX6pII7iOOTarBlBBIzwa/Lv8AYU+G/wAPviJ4x1pPF8Cajq+nwpcWGmXA/cSJnDyEfxlSUG08fNnnt+oF3cwaXYTXMrLFa2sTSOegVFGT+QFAH5N/ty+LF8S/tAavawsDa6Fbw6cgXoGC73/8ekI/Cv0h+AHgyPwR8GPBWiSQotxBp0Uk428+bIPMfP8AwJzX5QeF7af41/H+wWcF28Ta/wCdNntG8xd/yTP5V+1KII1CqMKOAB2FAChQoAUAD0FfiH8XdO1jwx8YPFkOuW5Oqw6vPPItwu5Zd0pdWI7qwIPuDX7e14D4++Gnwd/afuNUs5L21vPEOhP9kmv9KnC3VqeoVjgh1yT1DAHIBBzQB5D8Nf8AgoN4R12G20bx34dbRFlQW73Npi4ssEYw0eNyLjjGG4r688E6N4b0Lwxp9r4StbC28Psnm2q2AHksrc7lI65znPevyc/ab/Zzh/Z91rSbe28Sw6vb6qkkkULx+XcwBSBl1BIKnOAwxkg8cV9j/wDBPvxBfzfBa9t9YvAtjaatLDp/nuBiPYjMq5/hDsfxJoA+vK+XP20f2gh8KfBf/CN6JdBfF3iCJkRkb5rO2PDy+zHlV98ntXuXxE+JWhfDXwPq3i3VbqNtP0+MkLG4JmkPCRL6szYH61+L/wASviFq/wAUvGuq+Ktcl332oSltgJ2wxjhI19FUYA/PvQB3Pwz+Aer/ABB+Gvj7x2/mwaT4bsnlt2C83dwuGdR/sqm4k+pUetdr+wd4mHh/9oLTbN5NsWtWVxYnPQtt81f1ix+Ndp+z/wDtR6nrE/hf4Nz+G/D1h4R1aN9Fd7aOYTfvo2TeWaQgszsCSRzuPSvnH4X6vN8O/jP4Xv58xvo+tQrODxhVlCyD8t1AH7eivG/2rNH1fXf2f/HFloaSSXzWYkMcQJeSJJEeRQB1yitx36V63Lf2luwSW6gjYjOHkAOPXmqOu+J9F8N6Fda5q+p2tno9rGZJbuWQCNVHv39MDknigD8Yfgb8Xbr4I+PrbxXbaRaao8cLwNBckrhXxlkcZ2txjODwSO9fon8Of2mPhN+0rPYeGdf0iO11pZ0ubXTNZRJYpJk5UxSdGYc8EAn0NZvj39jb4WfG21Txb4P1E6NLqifaEutK2y2dwW53GI4wc9dpXvkZr84fGnhq5+GnxA1XQ7fVoLy80O8MceoWDHazoQQynqCD+RBoA/dFQFUAAAAYAFFYngu6v73wd4eudVBGqT6fbyXQIwRKY1L8f7xNFAG5Xw/+13+x9qvj3XZ/HfgKGKbWLhR/aOllxGbhlGBLETgbiAAVJGcZHOc/UPxcHxFPhuD/AIVk2jrr/wBpXzDq+fJ8ja27GP4s7f1rxTyv2vf+e3w7/KT/AAoA/PAfCn4q6LeSaYnhDxbbXEmVeGKxnAfHB+6MEV7b8GP2G/iF4w1O11DxUsvhPRo5BIzysPtz4IP7uMfcP+02Mehr6i8r9r7/AJ7/AA7/ACk/wo8r9r7/AJ7fDv8AKT/CgBn7Vn7KE3xf0nTNa8NXKnxjo9stqTeOB/aMK9A744kByQx4O4g44x+fGofBr4reD9Ta1l8HeJ7O8J2bra0lYP7B4wQw+hNfoV5X7X3/AD3+Hf5Sf4UeV+16P+W3w7/KT/CgD46+GP7GXxS+I+oxTatpc3h3SXYNNfawpSUjvtiPzs31wPevqL46fA5vhf8As2HwB8MvDupatf61fQDUbi2gMtxcqmZGklKjgbkVQOgzgd89F5P7Xv8Az2+Hf5Sf4Uvlfte/89vh3+Un+FAHAfsC/BfxL4H1zxf4g8V6Bf6Rctbw2Vol9AY2dWYvIVB7fIg/GqP7eXwJ8SeL/F/h3xV4R8P32rTXNq1lfJYwmRkMZ3RuwHqHIz/sivTPJ/a9/wCe3w7/ACk/wpfK/a+/57/Dv8pP8KAPn34D/sufEq/+G/xDWOfUPBviLUBBZ28d7CYfttuNzyxFsbkRiUG5f7uDkZrwfUfhB8ZPhVrMoTw74p0u8Q+X9r0pJSrjP8MsOQQfrX3z5P7Xv/Pb4d/lJ/hS+V+17/z2+Hf5Sf4UAfGfw6/ZY+LXxj8SR3Gt6dqum2EzhrvWNdDq+3vtEnzyNjp29SK/VPwJ4K0n4c+ENI8MaJCYtN0yEQx5+8x6s7HuzEkn3NfPHlfte/8APb4d/lJ/hR5X7Xv/AD2+Hf5Sf4UAfH3j74L/ABR+KPxr1nV7nwN4ht7DXNbbFzNZSKkVu0u1WJI4Cx459q/ULxdLc+Fvh5rLaFYz3N5p2mSLY2lsheSR1jIjRVHU5Civn7yv2vv+e3w7/KT/AAo8r9r7/nv8O/yk/wAKAPlf9mf9nnx7/wAL18J6l4o8H61p2k2Fy1/PdXto8ab41LICSOpkC177+3r8DNb8eweGfFXhXRbvVNXtGawu7eyiMkjQnLo+BzhW3D/gYrqvJ/a9/wCe3w7/ACk/wpfK/a+/57/Dv8pP8KAOR/YS0fx14NtPFPgzxj4S1nTdHugL60lv7R44t5ASWPJGMsuw4/2Wr51+P37HnjT4c+Jb+88L6Nea54SuJGktZbGMzS2yk8RyIvzcZwGAwQOx4r648r9r3/nt8O/yk/wo8r9r3/nt8O/yk/woA+AfDvwQ+LnxDvbextfCviK5CkIsl/FJFDCOnLy4VQK/RD9l79k6w+B8Ta/rU8OpeNLqLy2liH7myQ/eSPPJJ7vxnoABnOb5X7X3/Pb4d/lJ/hR5X7X3/Pf4d/lJ/hQB1v7Y1t4k1X4IaponhXRtQ1XU9YuIbVobGFpXSLdvdiB2+QL/AMCrwX9gn4KeKPBvjPxR4i8WeHNR0eSGxSzsxf27RGQyPucrkc4Eaj/gVem+V+19/wA9/h3+Un+FHlfte/8APb4d/lJ/hQB9SXlpBf2k9rcxJNbTo0csbjKurDBBHoQa/Lb47/sSeNPA+u3t/wCCdMuPEHhWZ2khS1+e6tVPPlvH1YDsy5yOuK+pfK/a+/57/Dv8pP8ACjyv2vf+e3w7/KT/AAoA/PTTvhF8V9eZdJtfCHiuZUbb9nezmWND77gFFfW37P37A9xbX9p4h+KRgKQsJItBgcSByOR57jjH+wpOe56ivVfK/a+/57fDv8pP8KPK/a9/57fDv8pP8KAPmH9qz4ZfEn4hfG/xBqGkeA9fuNEtBFYWElvYOYmiiQLlCBjaW3EY4wa/Rn4V+E18C/Dfwr4cC7W0vToLeQesgQbz+LbjXgnlftff89vh3+Un+FHlftff89/h3+Un+FAH1VWJ4x1G70jwlrl/p9rNd6ha2U0tvbQIXkllCEoqgcklsCvnDyv2vv8Anv8ADv8AKT/Cjyv2vv8Anv8ADv8AKT/CgD5Q/Z2/Z5+IM3x08Jah4p8H61YaVa332+5u721ZI90YMigsR1LhR+Nfp/4p8J6N420eTR9f0+HUNMlkjke3mGVZkcOufoyj6183eT+17/z2+Hf5Sf4Uvlftff8APf4d/lJ/hQB2X7XVr4hvfgXrOheE9FvdT1HVpIbP7PYQGRkh3BnOB0Xam3/gQr50/Ya+A3iPQPGPizWfGfhnUdKi/sz+z7dL+BojL5zfvCueuFTB/wB+vWPJ/a9/57fDv8pP8KXyv2vf+e3w7/KT/CgD4t+MP7JXxD+Gnim7g0nQdS1zQHlLWOoadA0xKE5VXVMlHHQ5GCRkVN8PP2O/it8RLiW51LR7nQrBUaR7vWFKSSEAkKsZ+diSAMkADPWvszyv2vf+e3w7/KT/AAo8r9r7/nt8O/yk/wAKAPD/ANkz9ln4n+G/iFoPjvVoovDmn2DsWtbwk3N1GylWTyx90EHq5GODg19l/tET63F8FfGMPh3TrzUdavbJrK3t7KIySEykRsQBzwrMfwryPyf2vf8Ant8O/wApP8KXyv2vv+e/w7/KT/CgDwT9in4CeMdA+NEXiDxX4V1XSLLSbGeWCW/tmiV5nxGApI5O13P4V+ktfKvlftff89vh3+Un+FHlftff89/h3+Un+FAHsXxz8D+JviH8OdV0Hwp4kfQNWuBxOowJl5zEzD5kVu7Lz9RkV+U2sfBX4x/CnXJdvhzxJYXcRKrfaSsrow9VlhzkH6197+V+19/z3+Hf5Sf4UeV+19/z2+Hf5Sf4UAfFngT9mT4v/GXxFFPqumavZ28zL9p1rX/MUqnqPM+eQ46AfiR1r0D9pr4E+L7XxB4b8IeBfBmv6h4V8LaTHaxXdvZu63M8jNLNIWUYLEsM+hGO1fSXk/te/wDPb4d/lJ/hS+V+19/z2+Hf5Sf4UAfHni3wB8X9Y+H3g/wNpvw78Uw6FoUb3M4OnyD7VeysWeRuOQoYIvsCe9fTnwN/YU8GL8PtPuviTo9xeeKL4faJYRdywizRgNsOI2GWA5YnuSO1dP5X7X3/AD3+Hf5Sf4UeV+19/wA9vh3+Un+FAHXaP+xn8G/D2r2Gr6d4ZuYNQ0+eO6t5RqdydkiMGU4MmDggda+Evj1+zt8Qh8aPGtz4e8Fa5faRc6lJd211aWbyRuJT5nysBg4LEfUV9f8Alftff89/h3+Un+FHlftff89vh3+Un+FAHyT8evAvxb+LHj1ddT4feKDCmnWVombCQYZIF8zt/wA9TJXuHx4/Za+Iuu/CvwJp3hTU3vrDw7pUMNx4aZhFm4CZkmQ8B3LFuGOR/D1xXo3lftff89/h3+Un+FHlftff89vh3+Un+FAH5/Wfg740eFzNotjo3jnTUmJWSztYbqNJD0OVXg19C/szfsV+JNW8TWHij4jaa+l6LYSrcRabc/8AHxeyA5UOv8CZ5OeT0xg5r3zyv2vv+e/w7/KT/Cus+Gsf7Ra+MbE+P5PBreFtsn2kaYH+0Z2Ns25H9/bn2zQB78OBRQOgooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP//Z" alt="CONSTRUTOP M&amp;T S.A.S"></div>
+    <div class="bt"><h1>Calcu<span class="t">Top</span></h1><p>Calculadora topográfica · CONSTRUTOP M&amp;T S.A.S</p><p class="sm">Usa coma o punto para decimales.</p></div>
+  </header>
+  <div class="staff" aria-hidden="true"></div>
+
+  <nav id="secs" class="secs" aria-label="Secciones">
+    <button data-s="niv" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18 L21 8" /><path d="M3 18 H21" /><circle cx="15" cy="11.3" r="1.6"/></svg>Cotas</button>
+    <button data-s="xy" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 V21 M3 12 H21"/><path d="M12 3 l-2.5 3.5 M12 3 l2.5 3.5"/><circle cx="17" cy="7" r="1.6"/></svg>Coordenadas</button>
+    <button data-s="pts" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="7" r="1.8"/><circle cx="6" cy="12" r="1.8"/><circle cx="6" cy="17" r="1.8"/><path d="M10.5 7 H20 M10.5 12 H20 M10.5 17 H20"/></svg>Puntos</button>
+  </nav>
+  <nav role="tablist" id="tabs" class="subs">
+    <button role="tab" data-s="niv" data-t="pend" aria-selected="true">Pendiente</button>
+    <button role="tab" data-s="niv" data-t="cota" aria-selected="false">Cota en un punto</button>
+    <button role="tab" data-s="niv" data-t="tram" aria-selected="false">Tramo y zanja</button>
+    <button role="tab" data-s="xy" data-t="coor" aria-selected="false" hidden>Chequeo entre puntos</button>
+    <button role="tab" data-s="xy" data-t="rep" aria-selected="false" hidden>Replanteo de punto</button>
+    <button role="tab" data-s="xy" data-t="eje" aria-selected="false" hidden>Replanteo de eje</button>
+    <button role="tab" data-s="pts" data-t="lst" aria-selected="false" hidden>Lista de puntos</button>
+  </nav>
+
+  <!-- PENDIENTE -->
+  <section class="mod" id="pend">
+    <h2>Pendiente entre dos cotas</h2>
+    <p class="hint">Con la cota de inicio, la cota final y la distancia horizontal entre ellas.</p>
+    <div class="grid">
+      <label>Cota inicial A (m)<input id="p_a" inputmode="decimal" value="1520,350"></label>
+      <label>Cota final B (m)<input id="p_b" inputmode="decimal" value="1519,860"></label>
+      <label>Distancia horizontal (m)<input id="p_l" inputmode="decimal" value="100"></label>
+    </div>
+    <div class="out" id="p_out"></div>
+  </section>
+
+  <!-- COTA EN UN PUNTO -->
+  <section class="mod" id="cota" hidden>
+    <h2>Cota en un punto de la pendiente</h2>
+    <div class="seg" role="group" aria-label="Modo">
+      <button id="c_m1" aria-pressed="true">Con dos cotas</button>
+      <button id="c_m2" aria-pressed="false">Con pendiente %</button>
+    </div>
+    <div class="grid">
+      <label>Cota inicial A (m)<input id="c_a" inputmode="decimal" value="1520,350"></label>
+      <label id="c_bwrap">Cota final B (m)<input id="c_b" inputmode="decimal" value="1519,860"></label>
+      <label id="c_lwrap">Distancia A→B (m)<input id="c_l" inputmode="decimal" value="100"></label>
+      <label id="c_swrap" hidden>Pendiente (%) · negativa si baja<input id="c_s" inputmode="decimal" value="-0,49"></label>
+      <label>Distancia desde A al punto (m)<input id="c_x" inputmode="decimal" value="35"></label>
+      <label>Cota de terreno en el punto (opcional)<input id="c_t" inputmode="decimal" value="1521,100"></label>
+    </div>
+    <div class="out" id="c_out"></div>
+    <svg id="c_svg" viewBox="0 0 400 150" role="img" aria-label="Perfil de la pendiente"></svg>
+  </section>
+
+  <!-- TRAMO Y ZANJA -->
+  <section class="mod" id="tram" hidden>
+    <h2>Tramo: cortes por punto y zanja</h2>
+    <p class="hint">Ingresa el tramo una sola vez. Luego agrega cada punto con su abscisa (distancia desde A) y la cota de terreno.</p>
+    <div class="grid">
+      <label>Cota rasante A (m)<input id="t_a" inputmode="decimal" value="963,82"></label>
+      <label>Cota rasante B (m)<input id="t_b" inputmode="decimal" value="963,59"></label>
+      <label>Longitud A→B (m)<input id="t_l" inputmode="decimal" value="46,17"></label>
+      <div class="out" style="border:0;padding:0;grid-template-columns:1fr"><div><span>Pendiente del tramo</span><b id="t_s">—</b></div></div>
+    </div>
+
+    <h3>Puntos del tramo</h3>
+    <div class="rowhead" aria-hidden="true"><span>Punto</span><span>Abscisa (m)</span><span>Cota terreno</span><span></span></div>
+    <div id="t_rows" class="rows"></div>
+    <button id="t_add" class="btn">+ Agregar punto</button>
+    <p class="note">Ejemplo con tu tramo de 46,17 m. Las cotas de terreno salen del plano; las abscisas de los puntos 2027, P4 y 2025 son de ejemplo, cámbialas por las reales.</p>
+    <svg id="t_svg" viewBox="0 0 400 190" role="img" aria-label="Perfil del tramo: terreno y rasante"></svg>
+    <div class="legend"><i class="lg-t"></i>Terreno <i class="lg-r"></i>Rasante <i class="lg-c"></i>Corte</div>
+
+    <h3>Excavación de zanja</h3>
+    <div class="grid">
+      <label>Ancho de fondo (m)<input id="z_b" inputmode="decimal" value="0,60"></label>
+      <label>Talud (H por 1 V) · 0 = vertical<input id="z_t" inputmode="decimal" value="0"></label>
+      <label>Cama bajo rasante (m)<input id="z_c" inputmode="decimal" value="0,10"></label>
+      <label>Diámetro tubería (pulg)<input id="z_d" inputmode="decimal" value="8"></label>
+      <label>Expansión del material (%)<input id="z_e" inputmode="decimal" value="25"></label>
+      <label>Volqueta<select id="z_v"><option value="6">Sencilla · 6 m³</option><option value="12">Doble troque · 12 m³</option><option value="14">Doble troque · 14 m³</option></select></label>
+    </div>
+    <div class="out" id="z_out"></div>
+    <button id="t_copy" class="btn ghost">Copiar resultados</button>
+    <p class="note" id="t_msg"></p>
+    <p class="note">Volumen por áreas medias entre puntos consecutivos. Profundidad de excavación = terreno − rasante + cama. Relleno = excavación − cama − volumen del tubo.</p>
+  </section>
+
+  <!-- DISTANCIA POR COORDENADAS -->
+  <section class="mod" id="coor" hidden>
+    <h2>Distancia entre coordenadas</h2>
+    <p class="hint">Con dos puntos te da la distancia, el azimut y, si pones las cotas, la diferencia de cota y la pendiente.</p>
+    <div class="grid">
+      <label>Punto A · Norte (m)<input id="k_an" inputmode="decimal" value="1180262,340"></label>
+      <label>Punto A · Este (m)<input id="k_ae" inputmode="decimal" value="835431,870"></label>
+      <label>Punto B · Norte (m)<input id="k_bn" inputmode="decimal" value="1180240,000"></label>
+      <label>Punto B · Este (m)<input id="k_be" inputmode="decimal" value="835470,000"></label>
+      <label>Cota A (opcional)<input id="k_az" inputmode="decimal" value="1519,900"></label>
+      <label>Cota B (opcional)<input id="k_bz" inputmode="decimal" value="1519,600"></label>
+    </div>
+    <div class="out" id="q_out"></div>
+    <svg id="q_svg" viewBox="0 0 400 200" role="img" aria-label="Vista en planta de los dos puntos"></svg>
+    <button id="q_copy" class="btn ghost">Copiar resultados</button>
+    <p class="note">Coordenadas de ejemplo; reemplázalas por las tuyas. Puedes escribir 1180262,340 o 1.180.262,340.</p>
+  </section>
+
+  <!-- REPLANTEO DE EJE -->
+  <section class="mod" id="eje" hidden>
+    <h2 id="e_h2">Replanteo de eje</h2>
+    <div class="esum" id="e_sum"></div>
+    <p class="hint" id="e_hint">El arranque solo fija los ceros. La línea puede ser cualquier par de puntos, no importa dónde estés armado.</p>
+    <h3>Arranque</h3>
+    <div class="grid">
+      <label>Ocupado (OC) · Norte<input id="e_on" inputmode="decimal" value="1180250,000"></label>
+      <label>Ocupado (OC) · Este<input id="e_oe" inputmode="decimal" value="835400,000"></label>
+      <label>Referencia (ceros) · Norte<input id="e_rn" inputmode="decimal" value="1180310,500"></label>
+      <label>Referencia (ceros) · Este<input id="e_re" inputmode="decimal" value="835455,200"></label>
+    </div>
+    <div class="out" id="e_st"></div>
+    <div data-em="eje" class="rows">
+    <h3>Línea a replantear</h3>
+    <div class="grid">
+      <label>Punto inicial (P1) · Norte<input id="e_an" inputmode="decimal" value="1180270,000"></label>
+      <label>Punto inicial (P1) · Este<input id="e_ae" inputmode="decimal" value="835420,000"></label>
+      <label>Punto final (P2) · Norte<input id="e_bn" inputmode="decimal" value="1180240,000"></label>
+      <label>Punto final (P2) · Este<input id="e_be" inputmode="decimal" value="835470,000"></label>
+      <label>Cota P1 (opcional)<input id="e_az" inputmode="decimal" value=""></label>
+      <label>Cota P2 (opcional)<input id="e_bz" inputmode="decimal" value=""></label>
+      <label>Abscisa de P1 (estación inicio)<input id="e_k0" inputmode="decimal" value="0"></label>
+    </div>
+    <h3>Punto a replantear</h3>
+    <div class="grid">
+      <label>Abscisa (m)<input id="e_k" inputmode="decimal" value="5"></label>
+      <label>Intervalo (m)<input id="e_i" inputmode="decimal" value="5"></label>
+      <label>Desplazamiento del eje (m) · + der, − izq<input id="e_o" inputmode="decimal" value="0"></label>
+    </div>
+    <div class="seg" role="group" aria-label="Moverse por abscisas">
+      <button id="e_prev">« Anterior</button>
+      <button id="e_next">Siguiente »</button>
+    </div>
+    </div>
+    <div data-em="pt" class="rows" hidden>
+      <h3>Punto a replantear</h3>
+      <div class="grid">
+        <label>Norte (m)<input id="e_pn" inputmode="decimal" value="1180262,340"></label>
+        <label>Este (m)<input id="e_pe" inputmode="decimal" value="835431,870"></label>
+        <label>Cota (opcional)<input id="e_pz" inputmode="decimal" value=""></label>
+      </div>
+      <div class="seg" role="group" aria-label="Moverse por la lista de puntos">
+        <button id="e_pprev">« Punto anterior</button>
+        <button id="e_pnext">Punto siguiente »</button>
+      </div>
+      <p class="note" id="e_pmsg"></p>
+    </div>
+    <div class="out" id="e_out"></div>
+    <svg id="e_svg" viewBox="0 0 400 230" role="img" aria-label="Planta: arranque, línea y punto a replantear"></svg>
+    <div id="e_tab" class="rows" data-em="eje"></div>
+    <button id="e_copy" class="btn ghost">Copiar resultados</button>
+    <p class="note">Coordenadas de ejemplo; pon las tuyas. Ángulo horizontal en sentido horario con 0° 00′ 00″ en la referencia. Desplazamiento mirando de P1 hacia P2.</p>
+  </section>
+
+  <!-- LISTA DE PUNTOS -->
+  <section class="mod" id="lst" hidden>
+    <h2>Lista de puntos</h2>
+    <p class="hint">Importa la poligonal y los puntos de replanteo una sola vez. Después, en cada pestaña, toca "Ingresar punto" y elige de la lista o escríbelo a mano.</p>
+    <div class="grid">
+      <label>Orden de columnas<select id="l_fmt">
+        <option value="PNEZD">P, N, E, Z, D (Punto, Norte, Este, Cota, Descripción)</option>
+        <option value="PENZD">P, E, N, Z, D (Punto, Este, Norte, Cota, Descripción)</option>
+        <option value="PNEZ">P, N, E, Z</option>
+        <option value="PENZ">P, E, N, Z</option>
+        <option value="PNE">P, N, E (sin cota)</option>
+      </select></label>
+      <label>Al importar<select id="l_mode"><option value="add">Agregar a la lista</option><option value="rep">Reemplazar la lista</option></select></label>
+    </div>
+    <label class="filebtn" for="l_file">Abrir archivo CSV o TXT<input id="l_file" type="file"></label>
+    <label>O pega aquí los puntos<textarea id="l_txt" rows="5" placeholder="5,971877.003,1098884.354,960.893,E5&#10;4,971914.737,1098897.916,961.172,E4"></textarea></label>
+    <button id="l_paste" class="btn">Importar texto pegado</button>
+    <p class="note" id="l_msg"></p>
+    <h3 id="l_cnt">Puntos cargados</h3>
+    <input id="l_q" placeholder="Buscar por número o descripción" aria-label="Buscar punto">
+    <div id="l_list" class="plist"></div>
+    <button id="l_exp" class="btn ghost">Exportar lista (copiar como CSV)</button>
+    <textarea id="l_out" rows="5" readonly hidden aria-label="Lista exportada"></textarea>
+    <div class="seg"><button id="l_clear">Borrar toda la lista</button></div>
+    <p class="note">Acepta separación por coma, punto y coma, tabulación o espacios, como lo exportan Civil 3D, la estación o la colectora. Si la primera línea son títulos, se ignora. La lista se guarda en este celular.</p>
+  </section>
+
+  <div id="pk" class="pk" hidden>
+    <div class="pkbox" role="dialog" aria-modal="true" aria-labelledby="pk_t">
+      <div class="pkhead"><b id="pk_t">Elegir punto</b><button id="pk_x" aria-label="Cerrar">×</button></div>
+      <div class="seg" role="group" aria-label="Forma de ingreso">
+        <button id="pk_tm" aria-pressed="false">Manual</button>
+        <button id="pk_tl" aria-pressed="true">De la lista</button>
+      </div>
+      <div id="pk_man" class="pkman" hidden>
+        <div class="grid">
+          <label>Nombre del punto (opcional)<input id="pm_p" placeholder="Ej. 120"></label>
+          <label id="pm_nl">Norte (m)<input id="pm_n" inputmode="decimal"></label>
+          <label id="pm_el">Este (m)<input id="pm_e" inputmode="decimal"></label>
+          <label id="pm_zl">Cota (m)<input id="pm_z" inputmode="decimal"></label>
+        </div>
+        <label class="chk"><input id="pm_save" type="checkbox"> Guardar también en la lista de puntos</label>
+        <p class="err" id="pm_err"></p>
+        <button id="pm_ok" class="btn ghost">Usar este punto</button>
+      </div>
+      <div id="pk_lst" class="pklst">
+        <input id="pk_q" placeholder="Buscar por número o descripción" aria-label="Buscar punto">
+        <div id="pk_list" class="plist"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="cred">
+    <b>CalcuTop 1.0</b>
+    <span>Calculadora topográfica de campo</span>
+    <span>© 2026 CONSTRUTOP M&amp;T S.A.S · Todos los derechos reservados</span>
+    <small>Los cálculos se hacen en el teléfono. Tus puntos y datos se guardan solo en este dispositivo.</small>
+  </footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const pc=v=>{v=String(v||"").trim().replace(/\s/g,"");if(!v)return NaN;const c=v.includes(","),d=(v.match(/\./g)||[]).length;if(c&&d)v=v.replace(/\./g,"").replace(",",".");else if(c)v=v.replace(",",".");else if(d>1)v=v.replace(/\./g,"");return Number(v)};
+const num=id=>pc($(id).value);
+const f=(n,d=3)=>isFinite(n)?n.toLocaleString("es-CO",{minimumFractionDigits:d,maximumFractionDigits:d}):"—";
+const cell=(lab,val,cls="",hint="")=>`<div class="${cls}"><span>${lab}</span><b>${val}</b>${hint?`<small>${hint}</small>`:""}</div>`;
+const dms=a=>{const x=Math.abs(a);let g=Math.floor(x),m=Math.floor((x-g)*60),sc=Math.round(((x-g)*60-m)*60);if(sc>=60){sc=0;m++}if(m>=60){m=0;g++}return (a<0?"−":"")+g+"° "+String(m).padStart(2,"0")+"′ "+String(sc).padStart(2,"0")+"″"};
+
+/* Secciones y pestañas */
+const lastT={niv:"pend",xy:"coor",pts:"lst"};try{Object.assign(lastT,JSON.parse(localStorage.getItem("obra_lastT")||"{}"))}catch(e){}
+function verSec(sc){document.querySelectorAll("#secs button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.s===sc));
+  const subs=[...document.querySelectorAll("#tabs button")];subs.forEach(x=>x.hidden=x.dataset.s!==sc);
+  $("tabs").hidden=subs.filter(x=>!x.hidden).length<2;}
+document.querySelectorAll("#tabs button").forEach(b=>b.addEventListener("click",()=>{
+  verSec(b.dataset.s);
+  document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
+  const sid=b.dataset.t==="rep"?"eje":b.dataset.t;
+  document.querySelectorAll("section.mod").forEach(s=>s.hidden=s.id!==sid);
+  if(sid==="eje"&&typeof setEMode==="function")setEMode(b.dataset.t==="rep"?"pt":"eje");
+  lastT[b.dataset.s]=b.dataset.t;
+  try{localStorage.setItem("obra_tab",b.dataset.t);localStorage.setItem("obra_lastT",JSON.stringify(lastT))}catch(e){}
+}));
+document.querySelectorAll("#secs button").forEach(b=>b.addEventListener("click",()=>{document.querySelector(`#tabs [data-t="${lastT[b.dataset.s]}"]`)?.click()}));
+verSec("niv");
+try{const t=localStorage.getItem("obra_tab");if(t)document.querySelector(`#tabs [data-t="${t}"]`)?.click()}catch(e){}
+
+/* Pendiente */
+function pend(){
+  const a=num("p_a"),b=num("p_b"),L=num("p_l"),o=$("p_out");
+  if(![a,b,L].every(isFinite)||L<=0){o.innerHTML='<p class="err">Ingresa las dos cotas y una distancia mayor que cero.</p>';return}
+  const dh=b-a,s=dh/L,ang=Math.atan(s)*180/Math.PI,mm=Math.abs(s*1000);
+  o.innerHTML=cell("Pendiente",f(s*100,3)+" %","big","Desnivel ÷ distancia × 100. Negativa: baja de A hacia B.")
+   +cell("Desnivel B − A",f(dh,3)+" m","","Cuánto sube (+) o baja (−) la cota B respecto a A.")
+   +cell("Por mil",f(s*1000,2)+" ‰","",s===0?"Sin desnivel.":`${dh<0?"Baja":"Sube"} ${f(mm,1)} mm por cada metro. A 10 m son ${f(mm,1)} cm.`)
+   +cell("Ángulo vertical",dms(ang),"",`Inclinación respecto a la horizontal; es igual en todo el tramo. Cenital: ${dms(90-ang)}.`)
+   +cell("Relación",s===0?"plana":"1 : "+f(1/Math.abs(s),1),"",s===0?"":`Por cada 1 m de desnivel avanza ${f(1/Math.abs(s),1)} m en horizontal.`)
+   +cell("Sentido",dh<0?"Baja de A a B":dh>0?"Sube de A a B":"Horizontal")
+   +cell("Distancia inclinada",f(Math.hypot(L,dh),3)+" m","","Medida sobre la pendiente. En pendientes suaves es casi igual a la horizontal.");
+}
+
+/* Cota en un punto */
+let modo=1;
+$("c_m1").onclick=()=>{modo=1;setModo()};$("c_m2").onclick=()=>{modo=2;setModo()};
+function setModo(){$("c_m1").setAttribute("aria-pressed",modo===1);$("c_m2").setAttribute("aria-pressed",modo===2);
+  $("c_bwrap").hidden=modo!==1;$("c_lwrap").hidden=modo!==1;$("c_swrap").hidden=modo!==2;cota()}
+function cota(){
+  const a=num("c_a"),x=num("c_x"),t=num("c_t"),o=$("c_out");let s,L,b;
+  if(modo===1){b=num("c_b");L=num("c_l");if(![a,b,L,x].every(isFinite)||L<=0){o.innerHTML='<p class="err">Faltan datos: cota A, cota B, distancia A→B y distancia al punto.</p>';$("c_svg").innerHTML="";return}s=(b-a)/L}
+  else{s=num("c_s")/100;if(![a,s,x].every(isFinite)){o.innerHTML='<p class="err">Faltan datos: cota A, pendiente y distancia al punto.</p>';$("c_svg").innerHTML="";return}L=Math.max(x,1);b=a+s*L}
+  const z=a+s*x;let h=cell("Cota en el punto",f(z,3)+" m","big","Cota A + pendiente × distancia al punto. Es la cota de rasante ahí.")+cell("Pendiente usada",f(s*100,3)+" %")+cell("Desnivel desde A",f(z-a,3)+" m","","Diferencia de cota entre A y el punto.");
+  if(modo===1&&(x<0||x>L))h+=cell("Ojo","Punto fuera del tramo A–B");
+  if(isFinite(t)){const d=t-z;h+=`<div class="big"><span>Terreno − rasante</span><b>${f(d,3)} m</b><span class="tag ${d>=0?"corte":"relleno"}">${d>=0?"Corte (excavar)":"Relleno"} ${f(Math.abs(d),3)} m</span><small>Positivo: el terreno está por encima de la rasante y hay que excavar. Negativo: hay que rellenar.</small></div>`}
+  o.innerHTML=h;dibujo(a,b,L,x,z,t);
+}
+function dibujo(a,b,L,x,z,t){
+  const W=400,H=150,px=30,py=22,xmax=Math.max(L,x,0)||1,xmin=Math.min(0,x);
+  const vals=[a,b,z].concat(isFinite(t)?[t]:[]);let lo=Math.min(...vals),hi=Math.max(...vals);if(hi-lo<0.01){hi+=.5;lo-=.5}
+  const X=v=>px+(v-xmin)/(xmax-xmin)*(W-2*px),Y=v=>H-py-(v-lo)/(hi-lo)*(H-2*py);
+  let s=`<line x1="${X(xmin)}" y1="${H-py+8}" x2="${X(xmax)}" y2="${H-py+8}" stroke="var(--line)"/>`;
+  s+=`<line x1="${X(0)}" y1="${Y(a)}" x2="${X(L)}" y2="${Y(b)}" stroke="var(--accent)" stroke-width="3"/>`;
+  s+=`<circle cx="${X(0)}" cy="${Y(a)}" r="4" fill="var(--fg)"/><text x="${X(0)}" y="${Y(a)-8}" text-anchor="start">A ${f(a,2)}</text>`;
+  s+=`<circle cx="${X(L)}" cy="${Y(b)}" r="4" fill="var(--fg)"/><text x="${X(L)}" y="${Y(b)-8}" text-anchor="end">B ${f(b,2)}</text>`;
+  if(isFinite(t))s+=`<line x1="${X(x)}" y1="${Y(t)}" x2="${X(x)}" y2="${Y(z)}" stroke="var(--muted)" stroke-dasharray="3 3"/><rect x="${X(x)-4}" y="${Y(t)-4}" width="8" height="8" fill="var(--muted)"/>`;
+  s+=`<circle cx="${X(x)}" cy="${Y(z)}" r="5" fill="var(--panel)" stroke="var(--fg)" stroke-width="2"/>`;
+  s+=`<text x="${X(x)}" y="${H-4}" text-anchor="middle">${f(x,1)} m → ${f(z,3)}</text>`;
+  $("c_svg").innerHTML=s;
+}
+
+document.querySelectorAll("#pend input").forEach(i=>i.addEventListener("input",pend));
+document.querySelectorAll("#cota input").forEach(i=>i.addEventListener("input",cota));
+pend();cota();
+
+/* ===== Tramo y zanja ===== */
+const pnum=pc;
+const DEF=[{n:"Inicio",x:"0",t:"967,770"},{n:"2026",x:"9,31",t:"967,631"},{n:"2027",x:"20",t:"967,729"},{n:"P4",x:"32",t:"967,974"},{n:"2025",x:"44",t:"968,115"}];
+let pts;try{pts=JSON.parse(localStorage.getItem("obra_pts"))}catch(e){}
+if(!Array.isArray(pts)||!pts.length)pts=DEF.map(p=>({...p}));
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function save(){try{localStorage.setItem("obra_pts",JSON.stringify(pts))}catch(e){}}
+function rows(){
+  $("t_rows").innerHTML=pts.map((p,i)=>`<div class="prow">
+    <input id="tp_n${i}" data-i="${i}" data-k="n" value="${esc(p.n)}" aria-label="Nombre del punto ${i+1}">
+    <input id="tp_x${i}" data-i="${i}" data-k="x" inputmode="decimal" value="${esc(p.x)}" aria-label="Abscisa punto ${i+1}">
+    <input id="tp_t${i}" data-i="${i}" data-k="t" inputmode="decimal" value="${esc(p.t)}" aria-label="Cota terreno punto ${i+1}">
+    <button class="del" data-del="${i}" aria-label="Quitar punto ${i+1}">×</button>
+    <div class="pres" id="tp_r${i}"></div></div>`).join("");
+  tramo();
+}
+$("t_rows").addEventListener("input",e=>{const el=e.target;if(el.dataset.k){pts[+el.dataset.i][el.dataset.k]=el.value;save();tramo()}});
+$("t_rows").addEventListener("click",e=>{const d=e.target.dataset.del;if(d!==undefined){pts.splice(+d,1);save();rows()}});
+$("t_add").onclick=()=>{const last=pts[pts.length-1];const nx=last?pnum(last.x)+10:0;pts.push({n:"P"+(pts.length+1),x:isFinite(nx)?String(nx).replace(".",","):"",t:""});save();rows();$("tp_x"+(pts.length-1))?.focus()};
+document.querySelectorAll("#tram .grid input, #tram .grid select").forEach(i=>i.addEventListener("input",tramo));
+
+let lastTxt="";
+function tramo(){
+  const a=num("t_a"),b=num("t_b"),L=num("t_l");
+  const ok=[a,b,L].every(isFinite)&&L>0;const s=ok?(b-a)/L:NaN;
+  $("t_s").textContent=ok?f(s*100,3)+" %":"—";
+  const res=pts.map(p=>{const x=pnum(p.x),t=pnum(p.t);if(!ok||!isFinite(x))return{p,x,t,z:NaN,d:NaN};const z=a+s*x;return{p,x,t,z,d:isFinite(t)?t-z:NaN}});
+  res.forEach((r,i)=>{const el=$("tp_r"+i);if(!el)return;
+    if(!isFinite(r.z)){el.innerHTML="Falta la abscisa";return}
+    let h=`Rasante <b>${f(r.z,3)}</b>`;
+    if(isFinite(r.d))h+=` <span class="tag ${r.d>=0?"corte":"relleno"}">${r.d>=0?"Corte":"Relleno"} ${f(Math.abs(r.d),3)} m</span>`;
+    if(r.x<0||r.x>L)h+=` · fuera del tramo`;
+    el.innerHTML=h});
+  const v=res.filter(r=>isFinite(r.d)).sort((m,n)=>m.x-n.x);
+  perfil(a,b,L,v,ok);
+  zanja(v,L,s);
+}
+function perfil(a,b,L,v,ok){
+  const svg=$("t_svg");if(!ok){svg.innerHTML="";return}
+  const W=400,H=190,pl=16,pr=16,pt=26,pb=28,cama=pnum($("z_c").value)||0;
+  const xmax=Math.max(L,...v.map(r=>r.x)),xmin=Math.min(0,...v.map(r=>r.x));
+  const ys=[a,b,a-cama,b-cama,...v.map(r=>r.t)];let lo=Math.min(...ys),hi=Math.max(...ys);if(hi-lo<.2){hi+=.1;lo-=.1}
+  const X=x=>pl+(x-xmin)/((xmax-xmin)||1)*(W-pl-pr),Y=y=>pt+(hi-y)/(hi-lo)*(H-pt-pb);
+  let g="";
+  for(let k=0;k<=4;k++){const yy=pt+k*(H-pt-pb)/4;g+=`<line x1="${pl}" x2="${W-pr}" y1="${yy}" y2="${yy}" stroke="var(--line)" stroke-width=".6"/>`}
+  if(v.length>1){
+    const top=v.map(r=>`${X(r.x)},${Y(r.t)}`).join(" "),bot=v.slice().reverse().map(r=>`${X(r.x)},${Y(r.z)}`).join(" ");
+    g+=`<polygon points="${top} ${bot}" fill="var(--warn)" fill-opacity=".16"/>`;
+    g+=`<polyline points="${top}" fill="none" stroke="var(--muted)" stroke-width="2"/>`;
+  }
+  g+=`<line x1="${X(0)}" y1="${Y(a)}" x2="${X(L)}" y2="${Y(b)}" stroke="var(--accent)" stroke-width="3"/>`;
+  v.forEach((r,i)=>{const xx=X(r.x),anc=xx<44?"start":xx>W-44?"end":"middle";
+    g+=`<line x1="${xx}" x2="${xx}" y1="${Y(r.t)}" y2="${Y(r.z)}" stroke="var(--warn)" stroke-dasharray="3 2"/>`;
+    g+=`<circle cx="${xx}" cy="${Y(r.t)}" r="3" fill="var(--fg)"/>`;
+    g+=`<text x="${xx}" y="${i%2?pt-6:pt-15}" text-anchor="${anc}" style="fill:var(--fg)">${esc(r.p.n||"")}</text>`;
+    g+=`<text x="${xx}" y="${H-(i%2?4:15)}" text-anchor="${anc}">${r.d>=0?"−":"+"}${f(Math.abs(r.d),2)}</text>`});
+  g+=`<text x="${X(0)+4}" y="${Y(a)-6}" text-anchor="start" style="fill:var(--accent);font-weight:600">A ${f(a,2)}</text>`;
+  g+=`<text x="${X(L)-4}" y="${Y(b)-6}" text-anchor="end" style="fill:var(--accent);font-weight:600">B ${f(b,2)}</text>`;
+  svg.innerHTML=g;
+}
+function zanja(v,L,s){
+  const B=pnum($("z_b").value),Z=pnum($("z_t").value)||0,c=pnum($("z_c").value)||0,D=(pnum($("z_d").value)||0)*0.0254,E=(pnum($("z_e").value)||0)/100,VQ=+$("z_v").value,o=$("z_out");
+  if(v.length<2||!isFinite(B)){o.innerHTML='<p class="err">Necesitas al menos dos puntos con abscisa y cota de terreno, y el ancho de fondo.</p>';$("t_msg").textContent="";lastTxt="";return}
+  const area=h=>h>0?h*(B+Z*h):0;let exc=0;
+  for(let i=1;i<v.length;i++){const h1=v[i-1].d+c,h2=v[i].d+c,dx=v[i].x-v[i-1].x;exc+=(area(h1)+area(h2))/2*dx}
+  const Ls=v[v.length-1].x-v[0].x,cam=B*c*Ls,tubo=Math.PI*D*D/4*Ls,rell=Math.max(exc-cam-tubo,0);
+  const prof=v.map(r=>r.d+c),pmax=Math.max(...prof),pmed=prof.reduce((m,n)=>m+n,0)/prof.length;
+  const sob=(exc-rell)*(1+E),tot=exc*(1+E),vj=x=>Math.ceil(x/VQ-1e-9);
+  o.innerHTML=cell("Excavación total (en banco)",f(exc,2)+" m³","big","Volumen en sitio, antes de soltarse. Por áreas medias entre puntos consecutivos.")
+   +cell("Longitud cubicada",f(Ls,2)+" m","","Del primer al último punto de la lista.")
+   +cell("Prof. media / máx.",f(pmed,2)+" / "+f(pmax,2)+" m","","Terreno − rasante + cama, en cada punto.")
+   +cell("Cama de arena",f(cam,2)+" m³","","Ancho de fondo × espesor de cama × longitud.")
+   +cell("Volumen del tubo",f(tubo,3)+" m³","","Sección del tubo × longitud. Se descuenta del relleno.")
+   +cell("Relleno compactado",f(rell,2)+" m³","","Excavación − cama − tubo.")
+   +cell("Sobrante a botar",f(sob,2)+" m³ · "+vj(sob)+" viajes","",`Si reutilizas el material en el relleno. Ya incluye ${f(E*100,0)} % de expansión.`)
+   +cell("Si se bota todo",f(tot,2)+" m³ · "+vj(tot)+" viajes","","Cuando el relleno se hace con material de préstamo.");
+  const cubre=v[0].x>0.001||v[v.length-1].x<L-0.001;
+  $("t_msg").textContent=cubre?`Se cubica de la abscisa ${f(v[0].x,2)} a ${f(v[v.length-1].x,2)} m. Para todo el tramo agrega puntos en 0 y en ${f(L,2)} m.`:"";
+  if(pmax>1.5)$("t_msg").textContent+=" Profundidades mayores a 1,5 m requieren entibado o talud según la norma de seguridad en excavaciones.";
+  lastTxt=`CONSTRUTOP M&T S.A.S
+TRAMO A=${$("t_a").value} B=${$("t_b").value} L=${$("t_l").value} m · Pendiente ${$("t_s").textContent}
+`
+   +v.map(r=>`${r.p.n||"-"}\tAbs ${f(r.x,2)}\tTerreno ${f(r.t,3)}\tRasante ${f(r.z,3)}\t${r.d>=0?"Corte":"Relleno"} ${f(Math.abs(r.d),3)}`).join("\n")
+   +`
+ZANJA ancho ${$("z_b").value} m, talud ${$("z_t").value}, cama ${$("z_c").value} m, tubo ${$("z_d").value}"
+Excavación ${f(exc,2)} m³ · Cama ${f(cam,2)} m³ · Relleno ${f(rell,2)} m³
+Sobrante suelto ${f(sob,2)} m³ (${vj(sob)} viajes de ${VQ} m³) · Botar todo ${f(tot,2)} m³ (${vj(tot)} viajes)`;
+}
+$("t_copy").onclick=()=>{const btn=$("t_copy");if(!lastTxt)return;
+  const done=()=>{btn.textContent="Copiado";setTimeout(()=>btn.textContent="Copiar resultados",1600)};
+  try{navigator.clipboard.writeText(lastTxt).then(done,()=>{$("t_msg").textContent=lastTxt})}catch(e){$("t_msg").textContent=lastTxt}};
+rows();
+
+/* ===== Distancia entre coordenadas ===== */
+const azim=(n1,e1,n2,e2)=>(Math.atan2(e2-e1,n2-n1)*180/Math.PI+360)%360;
+const dmsA=a=>{let x=((a%360)+360)%360,g=Math.floor(x),m=Math.floor((x-g)*60),sc=Math.round(((x-g)*60-m)*60);if(sc>=60){sc=0;m++}if(m>=60){m=0;g++}if(g>=360)g-=360;return g+"° "+String(m).padStart(2,"0")+"′ "+String(sc).padStart(2,"0")+"″"};
+const rumbo=a=>{a=((a%360)+360)%360;if(a<=90)return"N "+dmsA(a)+" E";if(a<=180)return"S "+dmsA(180-a)+" E";if(a<=270)return"S "+dmsA(a-180)+" W";return"N "+dmsA(360-a)+" W"};
+let qTxt="";
+function coor(){
+  const o=$("q_out"),an=num("k_an"),ae=num("k_ae"),bn=num("k_bn"),be=num("k_be"),za=num("k_az"),zb=num("k_bz");qTxt="";
+  const bad=m=>{o.innerHTML=`<p class="err">${m}</p>`;$("q_svg").innerHTML=""};
+  if(![an,ae,bn,be].every(isFinite))return bad("Ingresa Norte y Este de los dos puntos.");
+  const d=Math.hypot(bn-an,be-ae);if(d===0)return bad("Los dos puntos son iguales.");
+  const az=azim(an,ae,bn,be),hz=isFinite(za)&&isFinite(zb),dz=zb-za;
+  let h=cell("Distancia horizontal A → B",f(d,3)+" m","big","Raíz de (ΔNorte² + ΔEste²).");
+  if(hz)h+=`<div class="big"><span>Diferencia de cota B − A</span><b>${dz>=0?"+":"−"}${f(Math.abs(dz),3)} m</b><small>${dz>0?"B está más alto que A.":dz<0?"B está más bajo que A.":"Están a la misma cota."}</small></div>`
+    +cell("Pendiente A → B",f(dz/d*100,3)+" %","","Diferencia de cota ÷ distancia horizontal × 100.")
+    +cell("Distancia inclinada",f(Math.hypot(d,dz),3)+" m","","Medida sobre el terreno, entre las dos cotas.");
+  h+=cell("Azimut A → B",dmsA(az),"","Desde el norte, en sentido horario.")+cell("Azimut B → A",dmsA(az+180),"","El contrario: azimut ± 180°.")
+   +cell("Rumbo",rumbo(az),"","La misma dirección por cuadrante.")+cell("ΔNorte / ΔEste",f(bn-an,3)+" / "+f(be-ae,3)+" m");
+  o.innerHTML=h;
+  qTxt=`DISTANCIA ENTRE COORDENADAS\nA N ${f(an,3)} E ${f(ae,3)}${isFinite(za)?" Z "+f(za,3):""}\nB N ${f(bn,3)} E ${f(be,3)}${isFinite(zb)?" Z "+f(zb,3):""}\nDistancia ${f(d,3)} m · Az ${dmsA(az)} · Rumbo ${rumbo(az)}${hz?`\nΔcota ${f(dz,3)} m · Pendiente ${f(dz/d*100,3)} % · Dist. inclinada ${f(Math.hypot(d,dz),3)} m`:""}`;
+  planta([{n:nombreG("kA")||"A",N:an,E:ae},{n:nombreG("kB")||"B",N:bn,E:be}],d,az);
+}
+function planta(p,d,az){
+  const W=400,H=200,m=40,Ns=p.map(x=>x.N),Es=p.map(x=>x.E);
+  const cN=(Ns[0]+Ns[1])/2,cE=(Es[0]+Es[1])/2,span=Math.max(Math.abs(Ns[0]-Ns[1]),Math.abs(Es[0]-Es[1]),1);
+  const sc=Math.min(W-2*m,H-2*m)/span,X=e=>W/2+(e-cE)*sc,Y=n=>H/2-(n-cN)*sc;
+  const [A,B]=p,xa=X(A.E),ya=Y(A.N),xb=X(B.E),yb=Y(B.N);
+  let g=`<g transform="translate(22,18)"><path d="M0 22 L6 0 L12 22 L6 17 Z" fill="var(--accent)"/><text x="6" y="36" text-anchor="middle" style="fill:var(--fg);font-weight:600">N</text></g>`;
+  g+=`<line x1="${xa}" y1="${ya}" x2="${xb}" y2="${yb}" stroke="var(--accent)" stroke-width="3"/>`;
+  g+=`<line x1="${xa}" y1="${ya}" x2="${xa}" y2="${ya-30}" stroke="var(--muted)" stroke-dasharray="3 3"/>`;
+  [[A,xa,ya],[B,xb,yb]].forEach(([q,x,y])=>{g+=`<circle cx="${x}" cy="${y}" r="5" fill="var(--fg)"/><text x="${x}" y="${y>H-30?y-12:y+18}" text-anchor="${x>W-50?"end":x<50?"start":"middle"}" style="fill:var(--fg);font-weight:600">${q.n}</text>`});
+  g+=`<text x="${(xa+xb)/2}" y="${(ya+yb)/2-8}" text-anchor="middle" style="fill:var(--accent);font-weight:600">${f(d,2)} m</text>`;
+  $("q_svg").innerHTML=g;
+}
+const QIDS=["k_an","k_ae","k_bn","k_be","k_az","k_bz"];
+try{const dd=JSON.parse(localStorage.getItem("obra_dist")||"{}");QIDS.forEach(id=>{if(typeof dd[id]==="string")$(id).value=dd[id]})}catch(e){}
+QIDS.forEach(id=>$(id).addEventListener("input",()=>{try{const dd={};QIDS.forEach(i=>dd[i]=$(i).value);localStorage.setItem("obra_dist",JSON.stringify(dd))}catch(e){}coor()}));
+$("q_copy").onclick=()=>{const b=$("q_copy");if(!qTxt)return;const t="CONSTRUTOP M&T S.A.S\n"+qTxt;
+  try{navigator.clipboard.writeText(t).then(()=>{b.textContent="Copiado";setTimeout(()=>b.textContent="Copiar resultados",1600)},()=>{})}catch(e){}};
+coor();
+
+/* nombre del punto elegido si los campos siguen iguales */
+function nombreG(id){const E=window.elegido||{},x=E[id];if(!x||!x.p||x.p==="manual")return"";
+  const G=(window.GRUPOS_||[]).find(g=>g.id===id);if(!G)return"";const cerca=(fid,v)=>v!=null&&isFinite(v)&&Math.abs(num(fid)-v)<0.0006;
+  if(G.n)return cerca(G.n,x.n)&&cerca(G.e,x.e)?x.p:"";return cerca(G.z,x.z)?x.p:""}
+function resumenEje(){const el=$("e_sum");if(!el)return;const t=(lbl,id)=>{const n=nombreG(id);return n?`<b>${lbl} <i>${esc(n)}</i></b>`:""};
+  let h=t("Armado en","eO")+t("Ceros en","eR");
+  if(eMode==="pt")h+=t("Replanteando","eP");else{const a=nombreG("e1"),b=nombreG("e2");if(a||b)h+=`<b>Eje <i>${esc(a||"P1")} → ${esc(b||"P2")}</i></b>`}
+  el.innerHTML=h}
+
+/* ===== Replanteo de punto (mismo arranque) ===== */
+var eMode="eje",eReady=false;
+function setEMode(m){eMode=m;document.querySelectorAll("#eje [data-em]").forEach(x=>x.hidden=x.dataset.em!==m);
+  $("e_h2").textContent=m==="pt"?"Replanteo de punto":"Replanteo de eje";
+  $("e_hint").textContent=m==="pt"?"Desde donde estás armado (ocupado) y con los ceros en la referencia, replantea cualquier coordenada: escrita a mano o de la lista.":"El arranque solo fija los ceros. La línea puede ser cualquier par de puntos, no importa dónde estés armado.";
+  if(eReady)eje()}
+function ejePunto(on,oe,rn,re,azR,dr){
+  const o=$("e_out"),pn=num("e_pn"),pe=num("e_pe"),pz=num("e_pz");
+  if(![pn,pe].every(isFinite)){o.innerHTML='<p class="err">Ingresa el Norte y el Este del punto a replantear.</p>';$("e_svg").innerHTML="";return}
+  const a=azim(on,oe,pn,pe),H=(a-azR+360)%360,DH=Math.hypot(pn-on,pe-oe);
+  if(DH===0){o.innerHTML='<p class="err">El punto coincide con el ocupado.</p>';$("e_svg").innerHTML="";return}
+  const nm=nombreG("eP");
+  o.innerHTML=`<div class="big"><span>Punto a replantear${nm?" · "+esc(nm):""}</span><b>N ${f(pn,3)}<br>E ${f(pe,3)}${isFinite(pz)?"<br>Z "+f(pz,3):""}</b></div>`
+   +cell("Ángulo a girar",dmsA(H),"big",`Desde 0° en la referencia${nombreG("eR")?" (punto "+esc(nombreG("eR"))+")":""}, en sentido horario.`)
+   +cell("Distancia horizontal",f(DH,3)+" m","big","Desde el punto ocupado.")
+   +cell("Azimut desde OC",dmsA(a),"","Si orientas por azimut.")+cell("Ángulo antihorario",dmsA(360-H))
+   +cell("ΔNorte / ΔEste",f(pn-on,3)+" / "+f(pe-oe,3)+" m");
+  eTxt=`REPLANTEO DE PUNTO\nOC ${nombreG("eO")} N ${f(on,3)} E ${f(oe,3)} · REF N ${f(rn,3)} E ${f(re,3)} · Az ref ${dmsA(azR)}\nPunto ${nm||""} N ${f(pn,3)} E ${f(pe,3)}${isFinite(pz)?" Z "+f(pz,3):""}\nGirar ${dmsA(H)} · DH ${f(DH,3)} m · Az ${dmsA(a)}`;
+  const nO=nombreG("eO"),nR=nombreG("eR");
+  const pts=[{n:nO?"OC "+nO:"OC",N:on,E:oe,k:"s"},{n:nR?"REF "+nR:"REF",N:rn,E:re,k:"r"},{n:nm||"P",N:pn,E:pe,k:"p"}];
+  const W=400,H2=230,m=34,Ns=pts.map(p=>p.N),Es=pts.map(p=>p.E),cN=(Math.max(...Ns)+Math.min(...Ns))/2,cE=(Math.max(...Es)+Math.min(...Es))/2;
+  const span=Math.max(Math.max(...Ns)-Math.min(...Ns),Math.max(...Es)-Math.min(...Es),1),sc=Math.min(W-2*m,H2-2*m)/span,X=e=>W/2+(e-cE)*sc,Y=n=>H2/2-(n-cN)*sc;
+  let sv=`<g transform="translate(22,18)"><path d="M0 22 L6 0 L12 22 L6 17 Z" fill="var(--accent)"/><text x="6" y="36" text-anchor="middle" style="fill:var(--fg);font-weight:600">N</text></g>`;
+  sv+=`<line x1="${X(oe)}" y1="${Y(on)}" x2="${X(re)}" y2="${Y(rn)}" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  sv+=`<line x1="${X(oe)}" y1="${Y(on)}" x2="${X(pe)}" y2="${Y(pn)}" stroke="var(--accent)" stroke-width="2.5"/>`;
+  pts.forEach(p=>{const x=X(p.E),y=Y(p.N),anc=x>W-50?"end":x<50?"start":"middle";
+    sv+=p.k==="s"?`<polygon points="${x},${y-8} ${x-7},${y+5} ${x+7},${y+5}" fill="var(--fg)"/>`:p.k==="p"?`<circle cx="${x}" cy="${y}" r="6" fill="var(--accent)" stroke="var(--panel)" stroke-width="2"/>`:`<circle cx="${x}" cy="${y}" r="4" fill="var(--muted)"/>`;
+    sv+=`<text x="${x}" y="${y>H2-30?y-12:y+18}" text-anchor="${anc}" style="fill:var(--fg);font-weight:600">${esc(p.n)}</text>`});
+  $("e_svg").innerHTML=sv;
+}
+
+/* ===== Replanteo de eje ===== */
+const kfmt=k=>{const sg=k<0?"−":"",a=Math.abs(k),km=Math.floor(a/1000),m=a-km*1000;return sg+km+"+"+m.toFixed(2).replace(".",",").padStart(6,"0")};
+const EIDS=["e_pn","e_pe","e_pz","e_on","e_oe","e_rn","e_re","e_an","e_ae","e_bn","e_be","e_az","e_bz","e_k0","e_k","e_i","e_o"];
+try{const dd=JSON.parse(localStorage.getItem("obra_eje")||"{}");EIDS.forEach(id=>{if(typeof dd[id]==="string")$(id).value=dd[id]})}catch(e){}
+let eTxt="";
+function eje(){
+  if(eReady)resumenEje();
+  const o=$("e_out"),st=$("e_st"),tb=$("e_tab");eTxt="";tb.innerHTML="";
+  const bad=(m,el=o)=>{el.innerHTML=`<p class="err">${m}</p>`;$("e_svg").innerHTML=""};
+  const on=num("e_on"),oe=num("e_oe"),rn=num("e_rn"),re=num("e_re");
+  if(![on,oe,rn,re].every(isFinite)){st.innerHTML="";return bad("Ingresa Norte y Este del punto ocupado y de la referencia.",st)}
+  const dr=Math.hypot(rn-on,re-oe);if(dr===0){return bad("El ocupado y la referencia no pueden ser el mismo punto.",st)}
+  const azR=azim(on,oe,rn,re);
+  st.innerHTML=cell("Azimut a la referencia",dmsA(azR),"","Si orientas por azimut, carga este valor en vez de 0°.")+cell("Distancia a la referencia",f(dr,3)+" m","","Mídela para chequear el arranque.");
+  if(eMode==="pt")return ejePunto(on,oe,rn,re,azR,dr);
+  const an=num("e_an"),ae=num("e_ae"),bn=num("e_bn"),be=num("e_be"),az_=num("e_az"),bz=num("e_bz"),k0=num("e_k0")||0;
+  if(![an,ae,bn,be].every(isFinite))return bad("Ingresa Norte y Este de P1 y P2.");
+  const L=Math.hypot(bn-an,be-ae);if(L===0)return bad("P1 y P2 son el mismo punto.");
+  const az=azim(an,ae,bn,be),u=[Math.cos(az*Math.PI/180),Math.sin(az*Math.PI/180)],rp=[Math.cos((az+90)*Math.PI/180),Math.sin((az+90)*Math.PI/180)];
+  const hz=isFinite(az_)&&isFinite(bz),off=num("e_o")||0;
+  const pt=k=>{const d=k-k0;return{d,N:an+d*u[0]+off*rp[0],E:ae+d*u[1]+off*rp[1],Z:hz?az_+(bz-az_)*d/L:NaN}};
+  const ang=P=>{const a=azim(on,oe,P.N,P.E);return{H:(a-azR+360)%360,DH:Math.hypot(P.N-on,P.E-oe),az:a}};
+  let k=num("e_k");if(!isFinite(k))k=k0;
+  const P=pt(k),g=ang(P);
+  let h=cell("Abscisa",kfmt(k),"",`${f(P.d,2)} m desde P1${off?`, ${f(Math.abs(off),2)} m a la ${off>0?"derecha":"izquierda"} del eje`:" sobre el eje"}.`)
+   +cell("Longitud P1 → P2",f(L,3)+" m","",`Abscisa final ${kfmt(k0+L)}.`)
+   +`<div class="big"><span>Coordenada a replantear</span><b>N ${f(P.N,3)}<br>E ${f(P.E,3)}${hz?"<br>Z "+f(P.Z,3):""}</b><small>Para replantear por coordenadas.${hz?" Cota interpolada entre P1 y P2.":""}</small></div>`
+   +cell("Ángulo a girar",dmsA(g.H),"big",`Desde 0° en la referencia${nombreG("eR")?" (punto "+esc(nombreG("eR"))+")":""}, en sentido horario.`)
+   +cell("Distancia horizontal",f(g.DH,3)+" m","big","Desde el punto ocupado.")
+   +cell("Azimut desde OC",dmsA(g.az))+cell("Azimut del eje",dmsA(az));
+  if(P.d<-1e-6||P.d>L+1e-6)h+=`<div class="big"><span class="tag corte">La abscisa está fuera del tramo P1–P2</span></div>`;
+  o.innerHTML=h;
+  /* tabla */
+  const iv=num("e_i");let rows=[];
+  if(iv>0&&L/iv<=300){for(let x=0;x<L-1e-6;x+=iv)rows.push(k0+x);rows.push(k0+L)}
+  eTxt=`REPLANTEO DE EJE\nOC N ${f(on,3)} E ${f(oe,3)} · REF N ${f(rn,3)} E ${f(re,3)} · Az ref ${dmsA(azR)}\nP1 N ${f(an,3)} E ${f(ae,3)} → P2 N ${f(bn,3)} E ${f(be,3)} · L ${f(L,3)} m${off?` · Desplaz. ${f(off,2)} m`:""}\n`;
+  if(rows.length){
+    tb.innerHTML=`<h3>Todas las abscisas cada ${f(iv,2)} m</h3>`+rows.map(x=>{const Q=pt(x),q=ang(Q),cur=Math.abs(x-k)<1e-6;
+      eTxt+=`${kfmt(x)}\tN ${f(Q.N,3)}\tE ${f(Q.E,3)}${hz?"\tZ "+f(Q.Z,3):""}\tGirar ${dmsA(q.H)}\tDH ${f(q.DH,3)}\n`;
+      return`<button class="pres krow${cur?" cur":""}" data-k="${x}"><b>${kfmt(x)}</b> N ${f(Q.N,3)} E ${f(Q.E,3)}${hz?" Z "+f(Q.Z,3):""}<br>Girar <b>${dmsA(q.H)}</b> · DH <b>${f(q.DH,3)} m</b></button>`}).join("");
+  }
+  /* planta */
+  const nO=nombreG("eO"),nR=nombreG("eR"),n1=nombreG("e1"),n2=nombreG("e2");
+  const pts=[{n:nO?"OC "+nO:"OC",N:on,E:oe,k:"s"},{n:nR?"REF "+nR:"REF",N:rn,E:re,k:"r"},{n:n1||"P1",N:an,E:ae,k:"x"},{n:n2||"P2",N:bn,E:be,k:"x"},{n:"",N:P.N,E:P.E,k:"p"}];
+  const W=400,H=230,m=34,Ns=pts.map(p=>p.N),Es=pts.map(p=>p.E),cN=(Math.max(...Ns)+Math.min(...Ns))/2,cE=(Math.max(...Es)+Math.min(...Es))/2;
+  const span=Math.max(Math.max(...Ns)-Math.min(...Ns),Math.max(...Es)-Math.min(...Es),1),sc=Math.min(W-2*m,H-2*m)/span,X=e=>W/2+(e-cE)*sc,Y=n=>H/2-(n-cN)*sc;
+  let sv=`<g transform="translate(22,18)"><path d="M0 22 L6 0 L12 22 L6 17 Z" fill="var(--accent)"/><text x="6" y="36" text-anchor="middle" style="fill:var(--fg);font-weight:600">N</text></g>`;
+  sv+=`<line x1="${X(oe)}" y1="${Y(on)}" x2="${X(re)}" y2="${Y(rn)}" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  sv+=`<line x1="${X(ae)}" y1="${Y(an)}" x2="${X(be)}" y2="${Y(bn)}" stroke="var(--warn)" stroke-width="2.5"/>`;
+  rows.forEach(x=>{const Q=pt(x);sv+=`<circle cx="${X(Q.E)}" cy="${Y(Q.N)}" r="2" fill="var(--warn)"/>`});
+  sv+=`<line x1="${X(oe)}" y1="${Y(on)}" x2="${X(P.E)}" y2="${Y(P.N)}" stroke="var(--accent)" stroke-width="2"/>`;
+  pts.forEach(p=>{const x=X(p.E),y=Y(p.N),anc=x>W-50?"end":x<50?"start":"middle";
+    sv+=p.k==="s"?`<polygon points="${x},${y-8} ${x-7},${y+5} ${x+7},${y+5}" fill="var(--fg)"/>`:p.k==="p"?`<circle cx="${x}" cy="${y}" r="6" fill="var(--accent)" stroke="var(--panel)" stroke-width="2"/>`:`<circle cx="${x}" cy="${y}" r="4" fill="${p.k==="r"?"var(--muted)":"var(--fg)"}"/>`;
+    if(p.n)sv+=`<text x="${x}" y="${y>H-30?y-12:y+18}" text-anchor="${anc}" style="fill:var(--fg);font-weight:600">${p.n}</text>`});
+  $("e_svg").innerHTML=sv;
+}
+const esave=()=>{try{const dd={};EIDS.forEach(i=>dd[i]=$(i).value);localStorage.setItem("obra_eje",JSON.stringify(dd))}catch(e){}};
+EIDS.forEach(id=>$(id).addEventListener("input",()=>{esave();eje()}));
+const step=sg=>{const iv=num("e_i")||5,k=num("e_k")||0,k0=num("e_k0")||0;let nk=Math.round((k+sg*iv)*1000)/1000;$("e_k").value=String(nk).replace(".",",");esave();eje()};
+$("e_prev").onclick=()=>step(-1);$("e_next").onclick=()=>step(1);
+$("e_tab").addEventListener("click",e=>{const b=e.target.closest(".krow");if(b){$("e_k").value=String(+b.dataset.k).replace(".",",");esave();eje();$("e_out").scrollIntoView({behavior:"smooth",block:"start"})}});
+$("e_copy").onclick=()=>{const b=$("e_copy");if(!eTxt)return;try{navigator.clipboard.writeText("CONSTRUTOP M&T S.A.S\n"+eTxt.trim()).then(()=>{b.textContent="Copiado";setTimeout(()=>b.textContent="Copiar tabla",1600)},()=>{})}catch(e){}};
+eje();
+
+/* ===== Lista de puntos ===== */
+let PTS=[];try{PTS=JSON.parse(localStorage.getItem("obra_lista")||"[]");if(!Array.isArray(PTS))PTS=[]}catch(e){PTS=[]}
+const psave=()=>{try{localStorage.setItem("obra_lista",JSON.stringify(PTS))}catch(e){}};
+try{const fm=localStorage.getItem("obra_fmt");if(fm)$("l_fmt").value=fm}catch(e){}
+$("l_fmt").addEventListener("change",()=>{try{localStorage.setItem("obra_fmt",$("l_fmt").value)}catch(e){}});
+const f3=v=>isFinite(v)?v.toFixed(3).replace(".",","):"";
+function parsear(txt,fmt){
+  const lines=txt.replace(/\r/g,"").split("\n").map(l=>l.trim()).filter(Boolean);let ok=[],bad=0;
+  for(const l of lines){
+    let del;if(l.includes(";"))del=";";else if(l.includes("\t"))del="\t";else if(l.includes(",")){del=(!l.includes(".")&&l.split(/\s+/).length>=3)?" ":","}else del=" ";
+    const parts=(del===" "?l.split(/\s+/):l.split(del)).map(x=>x.trim().replace(/^"|"$/g,""));
+    const fn=v=>del===","?Number(v):pc(v);
+    const o={};[...fmt].forEach((c,i)=>{if(c==="D")o.d=parts.slice(i).join(" ").trim();else o[c]=parts[i]});
+    const n=fn(o.N),e=fn(o.E),z=o.Z!==undefined&&o.Z!==""?fn(o.Z):NaN;
+    if(!o.P||!isFinite(n)||!isFinite(e)){bad++;continue}
+    ok.push({p:String(o.P),n,e,z:isFinite(z)?z:null,d:o.d||""});
+  }
+  return{ok,bad};
+}
+function importar(txt){
+  const fmt=$("l_fmt").value,{ok,bad}=parsear(txt,fmt),m=$("l_msg");
+  if(!ok.length){m.textContent="No se pudo leer ningún punto. Revisa que el orden de columnas sea el correcto.";return}
+  if($("l_mode").value==="rep")PTS=[];
+  let upd=0;ok.forEach(p=>{const i=PTS.findIndex(x=>x.p===p.p);if(i>=0){PTS[i]=p;upd++}else PTS.push(p)});
+  psave();lista();
+  const p0=ok[0];
+  m.textContent=`Importados ${ok.length} puntos${upd?` (${upd} actualizados)`:""}${bad?`, ${bad} líneas ignoradas`:""}. Revisa el primero: punto ${p0.p} · N ${f3(p0.n)} · E ${f3(p0.e)}${p0.z!=null?" · Z "+f3(p0.z):""}. Si Norte y Este salen cruzados, cambia el orden de columnas e importa de nuevo con "Reemplazar".`;
+}
+$("l_file").addEventListener("change",e=>{const fl=e.target.files&&e.target.files[0];if(!fl)return;const r=new FileReader();r.onload=()=>{importar(String(r.result));e.target.value=""};r.onerror=()=>{$("l_msg").textContent="No se pudo abrir el archivo."};r.readAsText(fl)});
+$("l_paste").onclick=()=>{const t=$("l_txt").value;if(!t.trim()){$("l_msg").textContent="Pega primero los puntos en el cuadro.";return}importar(t);$("l_txt").value=""};
+const prow=(p,i)=>`<button class="prow2" data-i="${i}"><b>${esc(p.p)}</b><i>${esc(p.d||"")}</i><span>N ${f3(p.n)} · E ${f3(p.e)}${p.z!=null?" · Z "+f3(p.z):""}</span></button>`;
+const filtro=q=>{q=q.trim().toLowerCase();return PTS.map((p,i)=>[p,i]).filter(([p])=>!q||p.p.toLowerCase().includes(q)||(p.d||"").toLowerCase().includes(q))};
+function lista(){
+  $("l_cnt").textContent=`Puntos cargados (${PTS.length})`;
+  const r=filtro($("l_q").value);
+  $("l_list").innerHTML=PTS.length?r.slice(0,400).map(([p,i])=>prow(p,i).replace('class="prow2"','class="prow2" tabindex="-1"')).join("")||'<div class="empty">Ningún punto coincide con la búsqueda.</div>':'<div class="empty">Aún no hay puntos. Abre un archivo CSV o TXT, o pega los puntos arriba.</div>';
+}
+$("l_q").addEventListener("input",lista);
+let clr=false;$("l_clear").onclick=()=>{const b=$("l_clear");if(!clr){clr=true;b.textContent="Toca otra vez para confirmar";setTimeout(()=>{clr=false;b.textContent="Borrar toda la lista"},3000);return}
+  PTS=[];psave();lista();clr=false;b.textContent="Borrar toda la lista";$("l_msg").textContent="Lista borrada."};
+lista();
+
+/* botones "Elegir de la lista" en cada pestaña */
+const GRUPOS=window.GRUPOS_=[
+ {id:"pA",t:"Punto A",z:"p_a",par:"pB",dist:"p_l"},{id:"pB",t:"Punto B",z:"p_b",par:"pA",dist:"p_l"},
+ {id:"cA",t:"Punto A",z:"c_a",par:"cB",dist:"c_l"},{id:"cB",t:"Punto B",z:"c_b",par:"cA",dist:"c_l"},
+ {id:"tA",t:"Inicio A",z:"t_a",par:"tB",dist:"t_l"},{id:"tB",t:"Final B",z:"t_b",par:"tA",dist:"t_l"},
+ {id:"kA",t:"Punto A",n:"k_an",e:"k_ae",z:"k_az"},{id:"kB",t:"Punto B",n:"k_bn",e:"k_be",z:"k_bz"},
+ {id:"eO",t:"Ocupado (OC)",n:"e_on",e:"e_oe"},{id:"eR",t:"Referencia (ceros)",n:"e_rn",e:"e_re"},
+ {id:"eP",t:"Punto a replantear",n:"e_pn",e:"e_pe",z:"e_pz"},
+ {id:"e1",t:"Punto inicial P1",n:"e_an",e:"e_ae",z:"e_az"},{id:"e2",t:"Punto final P2",n:"e_bn",e:"e_be",z:"e_bz"}];
+var elegido={};try{Object.assign(elegido,JSON.parse(localStorage.getItem("obra_elig")||"{}"))}catch(e){}
+GRUPOS.forEach(g=>{const first=$(g.n||g.z);if(!first)return;const lab=first.closest("label");
+  const b=document.createElement("button");b.type="button";b.className="pick";b.id="pk_"+g.id;b.dataset.g=g.id;
+  b.innerHTML=`<span>Ingresar punto · ${g.t}</span><em></em>`;lab.parentNode.insertBefore(b,lab);
+  b.onclick=()=>abrir(g)});
+function marcar(){GRUPOS.forEach(g=>{const b=$("pk_"+g.id);if(!b)return;const em=b.querySelector("em"),nm=nombreG(g.id),x=elegido[g.id];
+  const lleno=g.n?$(g.n).value.trim()!=="":$(g.z).value.trim()!=="";
+  if(nm){em.textContent=nm+(x.d?" · "+x.d:"");em.className=""}else{em.textContent=lleno?"Manual":"";em.className="man"}});
+  if(eReady)resumenEje()}
+GRUPOS.forEach(g=>[g.n,g.e,g.z].filter(Boolean).forEach(id=>$(id).addEventListener("input",()=>marcar())));
+coor();
+marcar();
+eReady=true;eje();
+let gAct=null;
+/* recorrer la lista en replanteo de punto */
+function pasoLista(sg){const m=$("e_pmsg");if(!PTS.length){m.textContent='La lista está vacía. Impórtala en la sección "Puntos".';return}
+  let i=elegido.eP?PTS.findIndex(p=>p.p===elegido.eP.p):-1;i=i<0?(sg>0?0:PTS.length-1):i+sg;
+  if(i<0||i>=PTS.length){m.textContent=sg>0?"Ya estás en el último punto de la lista.":"Ya estás en el primer punto de la lista.";return}
+  m.textContent=`Punto ${i+1} de ${PTS.length} en la lista.`;aplicar(PTS[i],GRUPOS.find(g=>g.id==="eP"))}
+$("e_pprev").onclick=()=>pasoLista(-1);$("e_pnext").onclick=()=>pasoLista(1);
+/* exportar lista */
+function csvLista(){return"Punto,Norte,Este,Cota,Descripcion\n"+PTS.map(p=>[p.p,p.n.toFixed(3),p.e.toFixed(3),p.z!=null?p.z.toFixed(3):"",(p.d||"").replace(/,/g," ")].join(",")).join("\n")}
+$("l_exp").onclick=()=>{const m=$("l_msg");if(!PTS.length){m.textContent="No hay puntos para exportar.";return}
+  const t=csvLista(),box=$("l_out");box.value=t;box.hidden=false;
+  const ok=()=>{m.textContent=`Lista copiada (${PTS.length} puntos, formato P,N,E,Z,D). Pégala en WhatsApp, un correo o una nota para guardarla.`};
+  try{navigator.clipboard.writeText(t).then(ok,()=>{box.select();m.textContent="Selecciona el texto del cuadro y cópialo para guardarlo."})}catch(e){box.select();m.textContent="Selecciona el texto del cuadro y cópialo para guardarlo."}};
+
+let pkMode="l";
+function pkSet(m){pkMode=m;$("pk_tm").setAttribute("aria-pressed",m==="m");$("pk_tl").setAttribute("aria-pressed",m==="l");$("pk_man").hidden=m!=="m";$("pk_lst").hidden=m!=="l";
+  setTimeout(()=>(m==="m"?$("pm_p"):$("pk_q")).focus(),40)}
+$("pk_tm").onclick=()=>pkSet("m");$("pk_tl").onclick=()=>pkSet("l");
+function abrir(g){gAct=g;$("pk_t").textContent="Ingresar "+g.t.toLowerCase();$("pk_q").value="";pkList();
+  const zOnly=!g.n;$("pm_zl").firstChild.textContent=zOnly?"Cota (m)":"Cota (m) · opcional";
+  $("pm_nl").firstChild.textContent=zOnly?"Norte (m) · opcional, para calcular la distancia":"Norte (m)";
+  $("pm_el").firstChild.textContent=zOnly?"Este (m) · opcional":"Este (m)";$("pm_zl").hidden=!g.z;
+  const cur=elegido[g.id];$("pm_p").value=cur&&cur.p&&cur.p!=="manual"?cur.p:"";
+  $("pm_n").value=g.n?$(g.n).value:(cur&&isFinite(cur.n)?f3(cur.n):"");$("pm_e").value=g.e?$(g.e).value:(cur&&isFinite(cur.e)?f3(cur.e):"");
+  $("pm_z").value=g.z?$(g.z).value:"";$("pm_err").textContent="";
+  $("pk").hidden=false;pkSet(PTS.length?"l":"m")}
+function cerrar(){$("pk").hidden=true;if(gAct)$("pk_"+gAct.id)?.focus();gAct=null}
+function pkList(){const r=filtro($("pk_q").value);
+  $("pk_list").innerHTML=PTS.length?r.slice(0,400).map(([p,i])=>prow(p,i)).join("")||'<div class="empty">Ningún punto coincide.</div>':'<div class="empty">La lista está vacía. Ve a la pestaña "Puntos" e importa tu archivo CSV o TXT.</div>'}
+$("pk_q").addEventListener("input",pkList);$("pk_x").onclick=cerrar;
+$("pk").addEventListener("click",e=>{if(e.target.id==="pk")cerrar()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("pk").hidden)cerrar()});
+const poner=(id,v)=>{const el=$(id);if(!el||v==null||!isFinite(v))return;el.value=f3(v);el.dispatchEvent(new Event("input",{bubbles:true}))};
+function aplicar(p,g){
+  elegido[g.id]={p:p.p,n:p.n,e:p.e,z:p.z,d:p.d||""};try{localStorage.setItem("obra_elig",JSON.stringify(elegido))}catch(err){}
+  if(g.n){poner(g.n,p.n);poner(g.e,p.e)}
+  if(g.z&&p.z!=null)poner(g.z,p.z);
+  if(g.dist&&elegido[g.par]){const q=elegido[g.par];if([p.n,p.e,q.n,q.e].every(isFinite))poner(g.dist,Math.hypot(p.n-q.n,p.e-q.e))}
+  marcar();cerrar()}
+$("pk_list").addEventListener("click",e=>{const b=e.target.closest(".prow2");if(!b||!gAct)return;aplicar(PTS[+b.dataset.i],gAct)});
+$("pm_ok").onclick=()=>{const g=gAct;if(!g)return;const n=pc($("pm_n").value),e=pc($("pm_e").value),z=pc($("pm_z").value),nm=$("pm_p").value.trim(),er=$("pm_err");
+  if(g.n&&(!isFinite(n)||!isFinite(e))){er.textContent="Escribe el Norte y el Este del punto.";return}
+  if(!g.n&&!isFinite(z)){er.textContent="Escribe la cota del punto.";return}
+  if(isFinite(n)!==isFinite(e)){er.textContent="Escribe Norte y Este juntos, o deja los dos vacíos.";return}
+  const p={p:nm||"manual",n,e,z:isFinite(z)?z:null,d:""};
+  if($("pm_save").checked&&nm&&isFinite(n)){const i=PTS.findIndex(x=>x.p===nm);const q={p:nm,n,e,z:p.z,d:""};if(i>=0)PTS[i]=q;else PTS.push(q);psave();lista()}
+  aplicar(p,g)};
+["pm_p","pm_n","pm_e","pm_z"].forEach(id=>$(id).addEventListener("keydown",e=>{if(e.key==="Enter")$("pm_ok").click()}));
+
+</script>
+
+</body>
+</html>
